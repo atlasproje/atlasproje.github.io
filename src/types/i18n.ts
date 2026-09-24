@@ -470,7 +470,7 @@ export const translations: Record<Language, TranslationDict> = {
     'team.ilmaz_bio': '30 yılı aşkın süredir mekanik tesisat, bina sistemleri, sıhhi tesisat ve yapısal proje danışmanlığı yürüten İlmız Ünlü, şirketimizin mühendislik vizyonunun ve yerel güvenilirliğinin temel direğidir. Adana ve bölgesindeki kamu/özel projelerin teknik onay ve denetim süreçlerini yönetmektedir.',
     'team.metin_ttl': 'Teknoloji Lideri',
     'team.aysuhan_ttl': 'Teknik Çizim & Tasarım',
-    'team.aysuhan_bio': 'Ofisin çizim masasının sahibi. Projelerin 2B teknik çizimlerinin büyük çoğunluğunu AutoCAD\'de hazırlayan Aysuhan Ünlü, İlmiz Ünlü\'nün mühendislik hesaplarını net ve uygulanabilir çizimlere dönüştürür. 3B modelleme ile projelerin görselleştirilmesine de destek verir.',
+    'team.aysuhan_bio': 'Ofisin çizim masasındaki en güçlü güvencemiz. Teknik çizim araçlarındaki üstün hakimiyeti, hızı ve hata payını minimuma indiren keskin dikkatiyle projelerin 2B ve 3B uygulama planlarını eksiksiz şekilde hazırlar. İş disiplini ve operasyonel hızıyla Atlas Proje\'nin üretim süreçlerine kritik destek sağlar.',
     'team.metin_bio': 'Makine mühendisliği eğitimini veri bilimi ve yapay zeka mühendisliği ile birleştiren Metin Ünlü, şirketin teknolojik dönüşümüne liderlik etmektedir. İtalyan yapay zeka ortağımız Techneos ile yürütülen büyük ölçekli sınır ötesi veri hatları ve LLM projelerini yönetmektedir.',
 
     'tag.mech_eng': 'Mekanik Mühendisliği',
@@ -753,7 +753,7 @@ export const translations: Record<Language, TranslationDict> = {
     'team.ilmaz_bio': 'With over 30 years of hands-on experience in mechanical and MEP design, Ilmiz is the backbone of Atlas Proje\'s engineering credibility. He leads client relationships and supervises technical drawings, building regulations compliance, and site project management across Adana.',
     'team.metin_ttl': 'Technology Lead',
     'team.aysuhan_ttl': 'Technical Drawing & Design',
-    'team.aysuhan_bio': 'The hand behind the drawing board. Aysuhan prepares the majority of our 2D technical drawings in AutoCAD, turning İlmiz\'s engineering calculations into clear, buildable plans. She also supports projects with 3D modelling.',
+    'team.aysuhan_bio': 'The anchor at the drawing board. Exceptionally fast, sharp, and precise with technical drafting tools, she delivers near-zero-defect 2D and 3D technical plans with outstanding turnaround times. Her eye for detail and reliable execution provide essential day-to-day operational support to Atlas Proje.',
     'team.metin_bio': 'Bridging his mechanical engineering background with modern data science and artificial intelligence. Metin directs the technology division at Atlas Proje, managing international AI pipelines and LLM workflows in direct collaboration with Techneos (Italy).',
 
     'tag.mech_eng': 'Mechanical Engineering',
