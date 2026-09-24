@@ -15,7 +15,7 @@ export const PageHero = ({
 }: {
   n: string;
   crumb: string;
-  label: string;
+  label?: string;
   title: string;
   sub: string;
   aside?: ReactNode;
@@ -40,8 +40,8 @@ export const PageHero = ({
 
         <div className="mt-10 grid gap-10 sm:mt-14 lg:grid-cols-12 lg:gap-8">
           <Reveal delay={80} className="lg:col-span-9">
-            <p className="font-display text-lg italic text-oxblood">{label}</p>
-            <h1 className="display display-mark mt-3 text-[clamp(2.9rem,7.6vw,7.4rem)] text-navy">
+            {label && <p className="font-display text-lg italic text-oxblood">{label}</p>}
+            <h1 className={`display display-mark ${label ? 'mt-3' : ''} text-[clamp(2.9rem,7.6vw,7.4rem)] text-navy`}>
               <Rich html={title} />
             </h1>
           </Reveal>

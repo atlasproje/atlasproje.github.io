@@ -4,70 +4,126 @@ import { useLanguage } from '../context/LanguageContext';
 import { PageHero } from '../components/Blocks';
 import { ContactForm } from '../components/ContactForm';
 import { Container, Eyebrow, Reveal } from '../components/ui';
-
-const EMAIL = 'metinunlu97@gmail.com';
-const MAPS_URL = 'https://maps.google.com/?q=Reşatbey+Mahallesi+Cumhuriyet+Caddesi+Seyhan+Adana+Turkey';
+import { CONTACT_EMAIL as EMAIL, MAPS_URL } from '../lib/constants';
 
 const i = (n: number) => ({ '--i': n }) as CSSProperties;
 
-const MAIN_STREET = 'M-10 150 C 200 136, 520 148, 810 118';
-const RIVER = 'M150 -10 C 210 80, 120 170, 190 250 S 250 350, 220 390';
+// Paths run south → north so their labels read upwards.
+const ADALET = 'M350 335 L378 60';
+const FUZULI = 'M440 392 C 468 262, 504 122, 524 -10';
+const D400 = 'M-10 298 C 200 302, 390 326, 520 342 S 720 366, 810 376';
+const RIVER = 'M708 -10 C 714 60, 772 130, 752 205 S 668 318, 612 392';
+const PARK = 'M537 -10 L684 -10 C 690 60, 746 128, 728 205 C 714 262, 672 300, 636 348 L462 330 C 484 236, 514 110, 537 -10 Z';
 
-/** Schematic sketch of the neighbourhood: the Seyhan river, Cumhuriyet Caddesi and the office. */
+/** Schematic sketch of the neighbourhood: Adalet Caddesi, Seyhan Merkez Park, the Seyhan river and the office. */
 const SeyhanSketch = () => (
-  <svg viewBox="0 0 800 380" className="drawing h-auto w-full" role="img" aria-label="Reşatbey, Seyhan / Adana — schematic">
+  <svg viewBox="0 0 800 380" className="drawing h-auto w-full" role="img" aria-label="Seyhan / Adana — schematic">
     <defs>
-      <path id="street-main" d={MAIN_STREET} />
+      <path id="street-adalet" d={ADALET} />
+      <path id="street-fuzuli" d={FUZULI} />
+      <path id="street-d400" d={D400} />
+      <pattern id="park-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(38)">
+        <path d="M0 0 V7" className="stroke-gold" strokeOpacity=".35" strokeWidth="1" />
+      </pattern>
     </defs>
     <g filter="url(#rough)" fill="none" strokeLinecap="round">
+      {/* Seyhan Merkez Park + Atatürk Parkı */}
+      <path d={PARK} fill="url(#park-hatch)" className="fade" style={i(0)} />
+      <path d={PARK} className="ln stroke-gold" strokeOpacity=".6" strokeWidth="1" pathLength={1} style={i(1)} />
+      <rect x={24} y={62} width={116} height={92} fill="url(#park-hatch)" className="fade" style={i(0)} />
+      <rect x={24} y={62} width={116} height={92} className="ln stroke-gold" strokeOpacity=".5" strokeWidth="1" pathLength={1} style={i(1)} />
+      {/* park footpaths */}
+      {[
+        'M562 132 a 50 32 -8 1 0 100 -14 a 50 32 -8 1 0 -100 14',
+        'M548 214 a 16 16 0 1 0 32 0 a 16 16 0 1 0 -32 0',
+        'M520 70 C 560 96, 600 90, 640 60',
+        'M506 176 C 540 170, 552 192, 548 214 M580 214 C 620 222, 660 250, 690 250',
+        'M612 150 C 606 200, 580 250, 560 334',
+      ].map((d, n) => (
+        <path key={d} d={d} className="ln stroke-gold" strokeOpacity=".55" strokeWidth=".9" pathLength={1} style={i(n + 2)} />
+      ))}
       {/* river */}
       <path d={RIVER} className="fade stroke-navy" strokeOpacity=".12" strokeWidth="46" style={i(0)} />
       <path d={RIVER} className="ln stroke-navy" strokeOpacity=".4" strokeWidth="1" pathLength={1} style={i(0)} />
       {/* minor streets */}
       {[
-        'M260 -10 L300 390',
-        'M390 -10 L372 390',
-        'M540 -10 L590 390',
-        'M680 -10 L650 390',
-        'M230 250 L810 228',
-        'M240 60 L810 40',
-        'M240 330 L810 300',
-        'M300 150 L520 390',
+        'M20 -10 L40 392',
+        'M146 -10 L190 392',
+        'M330 -10 L290 300',
+        'M410 232 L392 322',
+        'M150 104 L512 28',
+        'M255 84 L516 112',
+        'M240 118 L506 150',
+        'M250 180 L488 215',
+        'M160 212 L478 256',
+        'M150 250 L470 292',
+        'M-10 50 L146 40',
+        'M-10 226 L160 212',
+        'M258 392 L280 312',
       ].map((d, n) => (
         <path key={d} d={d} className="ln stroke-navy" strokeOpacity=".22" strokeWidth="1" pathLength={1} style={i(n + 1)} />
       ))}
-      {/* Cumhuriyet Caddesi */}
-      <path d={MAIN_STREET} className="ln stroke-navy" strokeOpacity=".7" strokeWidth="2.4" pathLength={1} style={i(4)} />
+      {/* Fuzuli Caddesi + D400 */}
+      <path d={FUZULI} className="ln stroke-navy" strokeOpacity=".45" strokeWidth="1.8" pathLength={1} style={i(3)} />
+      <path d={D400} className="ln stroke-navy" strokeOpacity=".45" strokeWidth="1.8" pathLength={1} style={i(3)} />
+      {/* Adalet Caddesi */}
+      <path d={ADALET} className="ln stroke-navy" strokeOpacity=".7" strokeWidth="2.4" pathLength={1} style={i(4)} />
       {/* bridge */}
-      <path d="M140 140 L230 142 M140 156 L230 158" className="ln stroke-navy" strokeWidth="1.2" pathLength={1} style={i(6)} />
+      <path d="M602 345 L690 355 M602 360 L690 370" className="ln stroke-navy" strokeWidth="1.2" pathLength={1} style={i(6)} />
       {/* office crosshair */}
-      <circle cx={456} cy={141} r={18} className="ln stroke-oxblood" strokeWidth="1.4" pathLength={1} style={i(9)} />
-      <path d="M456 111 V131 M456 151 V171 M426 141 H446 M466 141 H486" className="ln stroke-oxblood" strokeWidth="1.4" pathLength={1} style={i(10)} />
+      <circle cx={367} cy={163} r={18} className="ln stroke-oxblood" strokeWidth="1.4" pathLength={1} style={i(9)} />
+      <path d="M367 133 V153 M367 173 V193 M337 163 H357 M377 163 H397" className="ln stroke-oxblood" strokeWidth="1.4" pathLength={1} style={i(10)} />
     </g>
-    <circle cx={456} cy={141} r={4} className="fade fill-oxblood" style={i(10)} />
+    <circle cx={367} cy={163} r={4} className="fade fill-oxblood" style={i(10)} />
 
     <g className="fade" style={i(11)}>
-      <text className="fill-navy font-mono" fontSize="11" letterSpacing="2.4">
-        <textPath href="#street-main" startOffset="62%">
-          CUMHURİYET CAD.
+      <text className="fill-navy font-mono" fontSize="11" letterSpacing="2.4" dy={-6}>
+        <textPath href="#street-adalet" startOffset="4%">
+          ADALET CAD.
         </textPath>
       </text>
-      <text x={120} y={300} className="fill-navy/70 font-display" fontStyle="italic" fontSize="22" transform="rotate(-72 120 300)">
+      <text className="fill-navy/70 font-mono" fontSize="9" letterSpacing="2" dy={-6}>
+        <textPath href="#street-fuzuli" startOffset="22%">
+          FUZULİ CAD.
+        </textPath>
+      </text>
+      <text className="fill-navy/70 font-mono" fontSize="9" letterSpacing="2" dy={-6}>
+        <textPath href="#street-d400" startOffset="30%">
+          D400
+        </textPath>
+      </text>
+      <text x={200} y={87} className="fill-navy/60 font-mono" fontSize="8" letterSpacing="1.2" transform="rotate(-12 200 87)">
+        STADYUM CAD.
+      </text>
+      <text x={390} y={137} className="fill-navy/60 font-mono" fontSize="8" letterSpacing="1.2" transform="rotate(7 390 137)">
+        62012. SOKAK
+      </text>
+      <text x={390} y={199} className="fill-navy/60 font-mono" fontSize="8" letterSpacing="1.2" transform="rotate(8.4 390 199)">
+        62010. SOKAK
+      </text>
+      <text x={82} y={112} textAnchor="middle" className="fill-gold font-display" fontStyle="italic" fontSize="12">
+        Atatürk Parkı
+      </text>
+      <text x={612} y={262} textAnchor="middle" className="fill-gold font-display" fontStyle="italic" fontSize="16">
+        <tspan x={612}>Seyhan</tspan>
+        <tspan x={612} dy={18}>Merkez Park</tspan>
+      </text>
+      <text x={706} y={300} className="fill-navy/70 font-display" fontStyle="italic" fontSize="22" transform="rotate(-56 706 300)">
         Seyhan
       </text>
-      <g transform="translate(476 180)">
-        <rect width={196} height={46} className="fill-paper-light stroke-navy/30" />
+      <g transform="translate(168 186)">
+        <rect width={170} height={46} className="fill-paper-light stroke-navy/30" />
         <text x={12} y={19} className="fill-navy font-mono" fontSize="11" letterSpacing="1.2">
           ATLAS PROJE
         </text>
         <text x={12} y={35} className="fill-ink-soft font-mono" fontSize="10">
-          Gürbiçer Apt. · Asma Kat 6
+          Seyhan / Adana
         </text>
       </g>
-      <text x={784} y={364} textAnchor="end" className="fill-ink-soft font-mono" fontSize="10.5" letterSpacing="1.5">
+      <text x={56} y={364} className="fill-ink-soft font-mono" fontSize="10.5" letterSpacing="1.5">
         37°00′N 35°19′E
       </text>
-      <g transform="translate(752 48)">
+      <g transform="translate(776 48)">
         <path d="M0 -18 L4 0 L0 18 L-4 0 Z" className="fill-none stroke-navy" />
         <path d="M0 -18 L4 0 L-4 0 Z" className="fill-navy" />
         <text y={-24} textAnchor="middle" className="fill-navy font-display" fontStyle="italic" fontSize="13">
@@ -85,13 +141,20 @@ export const Contact = () => {
     {
       label: t('cnt.addr_label'),
       value: (
-        <address className="not-italic">
-          Reşatbey Mah. Cumhuriyet Cad.
-          <br />
-          Gürbiçer Apt. Asma Kat No:6
-          <br />
-          Seyhan / Adana, Türkiye
-        </address>
+        <a
+          href={MAPS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group block"
+        >
+          <address className="not-italic leading-relaxed transition-colors group-hover:text-oxblood">
+            Reşatbey Mah. 62010 Sokak
+            <br />
+            N:32 Erçin Apt. Kat:2 D:6
+            <br />
+            {t('reg.location_val')}
+          </address>
+        </a>
       ),
     },
     {
@@ -126,7 +189,6 @@ export const Contact = () => {
       <PageHero
         n="04"
         crumb={t('bc.contact')}
-        label={t('cnt.hero_label')}
         title={t('cnt.hero_title')}
         sub={t('cnt.hero_sub')}
         aside={

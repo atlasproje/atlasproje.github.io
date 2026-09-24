@@ -461,7 +461,7 @@ export const translations: Record<Language, TranslationDict> = {
     'reg.founded_val': '18 Nisan 2006',
     'reg.type_val': 'Limited Şirket (Ltd. Şti.)',
     'reg.location_val': 'Seyhan / Adana, Türkiye',
-    'reg.address_val': 'Reşatbey Mah. Cumhuriyet Cad. Gürbiçer Apt. Asma Kat No:6',
+    'reg.address_val': 'Reşatbey Mah. 62010 Sokak N:32 Erçin Apt. Kat:2 D:6',
 
     'team.label': 'Ortaklar',
     'team.title': 'Kurucularımız',
@@ -561,7 +561,7 @@ export const translations: Record<Language, TranslationDict> = {
     'cnt.error': 'Lütfen formdaki tüm zorunlu alanları doldurup tekrar deneyiniz.',
     'cnt.loc_label': 'Harita',
     'cnt.loc_title': 'Adana Ofisimiz',
-    'cnt.loc_sub': 'Ofisimiz Seyhan Reşatbey Mahallesi\'nde, ulaşımı son derece kolay merkezi bir noktadadır.',
+    'cnt.loc_sub': 'Merkez Park\'tan ulaşımı son derece kolaydır.',
     'cnt.map_btn': 'Google Haritalar\'da Yol Tarifi Al',
 
     'hero.plate': 'Levha 01 — Sekiz köşeli yıldız; pergel ve cetvelle.',
@@ -744,7 +744,7 @@ export const translations: Record<Language, TranslationDict> = {
     'reg.founded_val': '18 April 2006',
     'reg.type_val': 'Limited Liability Company (Ltd. Şti.)',
     'reg.location_val': 'Seyhan / Adana, Turkey',
-    'reg.address_val': 'Reşatbey Mah. Cumhuriyet Cad. Gürbiçer Apt. Asma Kat No:6',
+    'reg.address_val': 'Reşatbey Mah. 62010 Sokak N:32 Erçin Apt. Kat:2 D:6',
 
     'team.label': 'The Partners',
     'team.title': 'Meet the Team',
@@ -844,7 +844,7 @@ export const translations: Record<Language, TranslationDict> = {
     'cnt.error': 'Please fill in all required fields and try again.',
     'cnt.loc_label': 'Map',
     'cnt.loc_title': 'Adana Office',
-    'cnt.loc_sub': 'Our office is located in Seyhan Reşatbey, a central location with easy transit access.',
+    'cnt.loc_sub': 'Our office is easily accessible from Merkez Park.',
     'cnt.map_btn': 'Get Directions on Google Maps',
 
     'hero.plate': 'Plate 01 — An eight-point star, by compass and rule.',

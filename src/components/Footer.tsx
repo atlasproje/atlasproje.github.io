@@ -3,6 +3,7 @@ import { PageLink } from './PageLink';
 import type { Page } from '../lib/router';
 import { Container, Rich } from './ui';
 import { LOGO_ATLAS } from '../lib/assets';
+import { CONTACT_EMAIL, MAPS_URL } from '../lib/constants';
 
 const SHEET: Record<Page, string> = { home: '01', services: '02', about: '03', contact: '04' };
 
@@ -73,15 +74,22 @@ export const Footer = ({ currentPage }: { currentPage: Page }) => {
 
           <div className="lg:col-span-2">
             <h2 className="eyebrow text-gold-light">{t('footer.cnt_heading')}</h2>
-            <address className="mt-5 text-[0.95rem] not-italic leading-relaxed text-paper/80">
-              Reşatbey Mah. Cumhuriyet Cad.
-              <br />
-              Gürbiçer Apt. Asma Kat No:6
-              <br />
-              Seyhan / Adana
-            </address>
-            <a href="mailto:metinunlu97@gmail.com" className="u-link mt-4 inline-block break-all text-[0.95rem] text-paper">
-              metinunlu97@gmail.com
+            <a
+              href={MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group mt-5 block text-[0.95rem] text-paper/80 transition-colors hover:text-paper"
+            >
+              <address className="not-italic leading-relaxed">
+                Reşatbey Mah. 62010 Sokak
+                <br />
+                N:32 Erçin Apt. Kat:2 D:6
+                <br />
+                Seyhan / Adana
+              </address>
+            </a>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="u-link mt-4 inline-block break-all text-[0.95rem] text-paper">
+              {CONTACT_EMAIL}
             </a>
           </div>
         </div>

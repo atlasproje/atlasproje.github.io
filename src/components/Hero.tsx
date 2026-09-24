@@ -1,62 +1,7 @@
-import { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ButtonLink, Container, Reveal, Rich } from './ui';
 import { PageLink } from './PageLink';
 import { StarPlate } from './StarPlate';
-
-const LOG_SEQUENCE = [
-  'mep_calculator --fit-hydraulic --flow=2.4L/s  [OK]',
-  'ai_agents.init --rag-source=docs/mep_spec.pdf',
-  'vector-db=pgvector  [CONNECTED]',
-  'techneos.pipelines.trigger --epochs=20',
-  'accuracy 98.4%  ✓',
-];
-
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/** A small typed log in the margin — the workshop running quietly next to the drawing. */
-const WorkshopLog = () => {
-  const { t } = useLanguage();
-  const [done, setDone] = useState<string[]>(() => (prefersReducedMotion() ? LOG_SEQUENCE.slice(0, 3) : []));
-  const [line, setLine] = useState(0);
-  const [chars, setChars] = useState(0);
-
-  useEffect(() => {
-    if (prefersReducedMotion()) return;
-    const phrase = LOG_SEQUENCE[line];
-    const timer =
-      chars < phrase.length
-        ? setTimeout(() => setChars((c) => c + 1), 38)
-        : setTimeout(() => {
-            setDone((prev) => [...prev, phrase].slice(-3));
-            setChars(0);
-            setLine((l) => (l + 1) % LOG_SEQUENCE.length);
-          }, 1400);
-    return () => clearTimeout(timer);
-  }, [chars, line]);
-
-  return (
-    <figure className="border-l border-navy/20 pl-4">
-      <figcaption className="eyebrow mb-3 text-gold">{t('hero.log_label')}</figcaption>
-      <div className="h-[5.6rem] overflow-hidden font-mono text-[0.72rem] leading-[1.55] text-ink-soft" aria-hidden>
-        <div className="flex h-full flex-col justify-end">
-          {done.map((l, idx) => (
-            <p key={`${l}-${idx}`} className="w-full min-w-0 truncate opacity-55">
-              <span className="text-gold">›</span> {l}
-            </p>
-          ))}
-          {!prefersReducedMotion() && (
-            <p className="w-full min-w-0 truncate text-navy">
-              <span className="text-oxblood">›</span> {LOG_SEQUENCE[line].slice(0, chars)}
-              <span className="caret ml-0.5 inline-block h-3 w-[6px] translate-y-[2px] bg-navy" />
-            </p>
-          )}
-        </div>
-      </div>
-    </figure>
-  );
-};
 
 export const Hero = () => {
   const { t } = useLanguage();
@@ -97,7 +42,7 @@ export const Hero = () => {
         </Reveal>
 
         <div className="mt-12 grid gap-12 lg:mt-16 lg:grid-cols-12 lg:gap-8">
-          <Reveal delay={200} className="lg:col-span-5 lg:col-start-3">
+          <Reveal delay={200} className="lg:col-span-6 lg:col-start-3">
             <p className="lede">{t('hero.desc')}</p>
             <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
               <ButtonLink to="services">{t('hero.btn_services')}</ButtonLink>
@@ -105,11 +50,6 @@ export const Hero = () => {
                 {t('hero.btn_contact')}
               </PageLink>
             </div>
-          </Reveal>
-
-          <Reveal delay={320} className="relative lg:col-span-3 lg:col-start-10 lg:self-end lg:bg-paper/90 lg:p-5 lg:backdrop-blur-[2px]">
-            <WorkshopLog />
-            <p className="mt-6 font-display text-[0.95rem] italic leading-snug text-ink-soft">{t('hero.plate')}</p>
           </Reveal>
         </div>
 

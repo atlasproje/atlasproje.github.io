@@ -24,7 +24,6 @@ export const About = () => {
       <PageHero
         n="03"
         crumb={t('bc.about')}
-        label={t('about.hero_label')}
         title={t('about.hero_title')}
         sub={t('about.hero_sub')}
         aside={
@@ -68,7 +67,6 @@ export const About = () => {
             <Reveal className="lg:sticky lg:top-32">
               <Eyebrow n="05">{t('val.label')}</Eyebrow>
               <h2 className="display mt-6 text-[clamp(2.6rem,5vw,4.4rem)] text-navy">{t('val.title')}</h2>
-              <p className="lede mt-6">{t('val.sub')}</p>
             </Reveal>
           </div>
           <ol className="grid gap-x-12 sm:grid-cols-2 lg:col-span-7 lg:col-start-6">

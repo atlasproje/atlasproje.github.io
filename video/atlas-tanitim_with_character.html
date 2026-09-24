@@ -2,10 +2,10 @@
 <!--
   Atlas Proje — 38 saniyelik tanıtım filmi (1920×1080).
 
-  Tek bir çizgiyle başlayan kısa bir film: pergelle çizilen sekiz köşeli yıldız
-  kağıttan kopar ve yola çıkar. Binanın vanasını çevirip tesisatı çalıştırır,
-  suyu veriye, veriyi tahmine dönüştürür; yapay zekanın içinden geçer, kitabın
-  sayfalarında dolaşır ve sonunda logoya dönüşür.
+  Tek bir çizgiyle başlayan kısa bir film: küçük mühendis "Atlas", pergelle
+  çizilen yıldızı omuzlarına alır; binanın tesisatını çalıştırır, suyu veriye,
+  veriyi tahmine dönüştürür; dürbününden yapay zekaya bakar, ekibine ders verir
+  ve sonunda yıldızı logoya taşır.
 
   Önizleme:  node render-video.mjs --serve   → yazdığı adresi tarayıcıda aç
              (Boşluk: durdur/oynat · ← →: 1 sn geri/ileri · 0: başa dön)
@@ -284,7 +284,6 @@ function on(el, kind, a, b, opt = {}) {
   }
   if (kind === 'drawText') el.style.strokeDasharray = `${opt.len} ${opt.len}`;
   if ((kind === 'pop' || kind === 'stamp') && el instanceof SVGElement) { el.style.transformBox = 'fill-box'; el.style.transformOrigin = 'center'; }
-  if (kind === 'grow') { el.style.transformBox = 'fill-box'; el.style.transformOrigin = '50% 100%'; }
   items.push(it);
   return el;
 }
@@ -333,127 +332,319 @@ function toScreen(W, p) {
   return [960 + dx * Math.cos(r) - dy * Math.sin(r), 540 + dx * Math.sin(r) + dy * Math.cos(r)];
 }
 
-// =================================================================== mark ==
-// The protagonist: the gold eight-point star of the Atlas mark. It rolls along
-// lines (turning by the distance it covers), hops and flies on arcs, squashes
-// when it lands, spins when it works, and leaves a short ink trail behind it.
-const MR = 30; // star radius at scale 1
-const HZ = 240;
-function mark(W, o) {
-  const M = { W, segs: o.segs, start: o.start, ks: o.ks ?? [[-99, 1]], hits: o.hits ?? [], spins: o.spins ?? [], show: o.show ?? [W.a, W.b], fade: o.fade };
-  const trailG = svg('g', {}, W.cam);
-  const trail = [];
-  for (let i = 0; i < 16; i++) trail.push(svg('line', { ...ink(3.2, GOLD) }, trailG));
-  const g = svg('g', {}, W.cam);
-  const spin = svg('g', {}, g);
-  const body = svg('path', { d: atlasStar(0, 0, MR), fill: GOLD, stroke: NAVY, 'stroke-width': 2.4, 'stroke-linejoin': 'round' }, spin);
-  const eye = svg('circle', { r: 8.5, fill: PAPER, stroke: NAVY, 'stroke-width': 2 }, spin);
-  const tick = svg('path', { d: 'M0 -8.5 V-3', stroke: NAVY, 'stroke-width': 2, 'stroke-linecap': 'round' }, spin);
-  const glints = [];
-  for (let k = 0; k < 8; k++) glints.push(svg('path', { ...ink(2.4, GOLD) }, g));
+// ================================================================ figures ==
+// Atlas and friends: a small rig (hips, knees, shoulders, elbows, head) drawn
+// as ink lines every frame. Walking and running come from how far the figure
+// has travelled, so feet never slide; poses blend; hands can hold things (IK).
+const HZ = 240, T_MIN = -1;
+const STAND = { N: [8, 16], F: [-6, 16], legs: { N: [3, 5], F: [-3, 5] }, lean: 0, tilt: 0, look: 0, swing: 1, smile: 0.5 };
+const UA = 44, FA = 42, TH = 50, SH = 50; // upper arm, forearm, thigh, shin
 
-  M.k = (t) => {
-    const K = M.ks;
-    let i = 0;
-    while (i + 1 < K.length && K[i + 1][0] <= t) i++;
-    if (i + 1 >= K.length) return K[i][1];
-    const a = K[i], b = K[i + 1];
-    return Math.exp(lerp(Math.log(a[1]), Math.log(b[1]), P(t, a[0], b[0], b[2] ?? E.io)));
+function gait(ph, run) {
+  const aH = lerp(24, 40, run), aK = lerp(44, 92, run), aA = lerp(20, 36, run);
+  const sp = Math.sin(ph), cp = Math.cos(ph);
+  const knee = (c) => 5 + aK * Math.pow(Math.max(0, c), 1.3);
+  return {
+    legs: { N: [aH * sp, knee(cp)], F: [-aH * sp, knee(-cp)] },
+    N: [-aA * sp + 6, lerp(20, 88, run)],
+    F: [aA * sp + 6, lerp(20, 88, run)],
+    lean: lerp(5, 15, run),
+    lift: run * 12 * sp * sp,
   };
-  // segments: { a, b, to, e, via (arc control point), hop (height), ground (y of the line it rolls on) }
-  M.pos = (t) => {
-    let p = M.start;
-    for (const s of M.segs) {
-      if (t < s.a) break;
-      if (t >= s.b) { p = s.to; continue; }
-      const u = (t - s.a) / (s.b - s.a);
-      const e = s.e === 'trap' ? E.trap(u, 0.25) : (E[s.e ?? (s.via ? 'lin' : 'io')])(u);
-      let x, y;
-      if (s.via) {
-        x = (1 - e) * (1 - e) * p[0] + 2 * (1 - e) * e * s.via[0] + e * e * s.to[0];
-        y = (1 - e) * (1 - e) * p[1] + 2 * (1 - e) * e * s.via[1] + e * e * s.to[1];
-      } else {
-        x = lerp(p[0], s.to[0], e);
-        y = lerp(p[1], s.to[1], e);
-      }
-      if (s.ground) y = s.ground(x) - MR * M.k(t);
-      if (s.hop) y -= s.hop * Math.sin(Math.PI * u);
-      return [x, y];
+}
+// two-bone IK in the figure's facing frame; angles: 0 = down, 90 = forward, 180 = up
+function ik(S, T, a, b, dir, bend = 1) {
+  const dx = (T[0] - S[0]) * dir, dy = T[1] - S[1];
+  const d = clamp(Math.hypot(dx, dy), Math.abs(a - b) + 0.01, a + b - 0.01);
+  const th = Math.atan2(dx, dy);
+  const al = Math.acos(clamp((a * a + d * d - b * b) / (2 * a * d), -1, 1));
+  const be = Math.acos(clamp((a * a + b * b - d * d) / (2 * a * b), -1, 1));
+  return [deg(th - bend * al), deg(bend * (Math.PI - be))];
+}
+
+const figures = [];
+function figure(W, o = {}) {
+  const s = o.scale ?? 1;
+  const F = {
+    W, s, hat: o.hat ?? 'helmet', glasses: !!o.glasses, dir0: o.dir ?? 1,
+    ground: o.ground ?? (() => 0),
+    moves: [], dirKeys: [], poses: [{ t: -99, p: {}, d: 0.01 }], jumps: [], hits: [], props: [],
+    reveal: o.reveal ?? null, show: o.show ?? [-99, 999], seed: o.seed ?? 1,
+  };
+  figures.push(F);
+  const root = svg('g', {}, o.parent ?? W.cam);
+  F.root = root;
+  const L = (w, c = NAVY, extra = {}) => { const p = svg('path', { ...ink(w * s, c), ...extra }, root); p.setAttribute('pathLength', 1); return p; };
+  const part = {};
+  part.armF = L(4.4, NAVY2);
+  part.handF = svg('circle', { r: 4.6 * s, fill: NAVY2 }, root);
+  part.legF = L(5, NAVY2);
+  part.footF = L(8, NAVY2);
+  part.legN = L(5);
+  part.footN = L(8);
+  part.torso = L(2.6, NAVY, { fill: NAVY });
+  part.scarf = L(6.5, OX);
+  part.knot = svg('circle', { r: 4.4 * s, fill: OX }, root);
+  part.head = L(2.8, NAVY, { fill: PAPER });
+  part.cheek = svg('circle', { r: 3.8 * s, fill: 'rgba(145,41,48,.26)' }, root);
+  part.eyes = svg('path', { fill: NAVY, stroke: NAVY, 'stroke-width': 1.7 * s, 'stroke-linecap': 'round' }, root);
+  part.mouth = L(1.7);
+  part.glasses = F.glasses ? L(1.8) : null;
+  part.hat = L(2.4, NAVY, { fill: F.hat === 'helmet' ? GOLD : F.hat === 'cap' ? OX : NAVY });
+  part.bun = F.hat === 'bun' ? svg('path', { fill: NAVY }, root) : null;
+  part.armN = L(4.8);
+  part.handN = svg('circle', { r: 4.9 * s, fill: NAVY }, root);
+  // props
+  part.spy = svg('g', {}, root);
+  part.spyA = svg('path', { ...ink(12 * s), 'stroke-linecap': 'butt' }, part.spy);
+  part.spyB = svg('path', { ...ink(9.5 * s), 'stroke-linecap': 'butt' }, part.spy);
+  part.spyC = svg('path', { ...ink(7 * s, GOLD), 'stroke-linecap': 'butt' }, part.spy);
+  part.spyL = svg('path', { ...ink(2.2 * s), fill: PAPER }, part.spy);
+  part.pointer = L(3, NAVY);
+  part.pointerTip = svg('circle', { r: 4 * s, fill: GOLD }, root);
+  part.paper = svg('path', { ...ink(2 * s), fill: PAPER }, root);
+  const strokes = [part.armF, part.legF, part.footF, part.legN, part.footN, part.torso, part.scarf, part.head, part.mouth, part.hat, part.armN, part.glasses].filter(Boolean);
+
+  F.xAt = (t) => {
+    const M = F.moves;
+    if (!M.length) return 0;
+    if (t <= M[0].t) return M[0].x;
+    for (let i = 0; i < M.length - 1; i++) {
+      const a = M[i], b = M[i + 1];
+      if (t < b.t) return a.x + (b.x - a.x) * E.trap(clamp((t - a.t) / (b.t - a.t)), b.acc ?? 0.2);
     }
-    return p;
+    return M[M.length - 1].x;
   };
-  // rolling: rotation follows the distance travelled; baked so seeking is exact
-  M.bake = () => {
-    const t0 = W.a - 0.5, n = Math.ceil((W.b - W.a + 1) * HZ) + 1;
-    M.t0 = t0; M.n = n; M.rot = new Float32Array(n); M.spd = new Float32Array(n);
-    let rot = 0, prev = M.pos(t0);
+  F.bake = () => {
+    const n = Math.ceil((DURATION + 2 - T_MIN) * HZ) + 1;
+    F.n = n;
+    F.spd = new Float32Array(n); F.ph = new Float32Array(n); F.dirs = new Int8Array(n); F.vx = new Float32Array(n);
+    const xs = new Float32Array(n);
+    for (let i = 0; i < n; i++) xs[i] = F.xAt(T_MIN + i / HZ);
+    const DK = [...F.dirKeys].sort((a, b) => a.t - b.t);
+    let ph = 0, d = F.dir0, k = 0;
     for (let i = 0; i < n; i++) {
-      const t = t0 + i / HZ, p = M.pos(t);
-      const dx = p[0] - prev[0], dy = p[1] - prev[1];
-      rot += deg(dx / (MR * M.k(t)));
-      M.rot[i] = rot;
-      M.spd[i] = Math.hypot(dx, dy) * HZ;
-      prev = p;
+      const t = T_MIN + i / HZ;
+      const i0 = Math.max(0, i - 12), i1 = Math.min(n - 1, i + 12);
+      const v = (xs[i1] - xs[i0]) / ((i1 - i0) / HZ);
+      F.vx[i] = v;
+      F.spd[i] = Math.abs(v) / s;
+      if (i > 0) {
+        const dx = xs[i] - xs[i - 1], dy = F.ground(xs[i]) - F.ground(xs[i - 1]);
+        const run = clamp((F.spd[i] - 300) / 250);
+        ph += (Math.PI * Math.hypot(dx, dy)) / s / lerp(92, 176, run);
+      }
+      F.ph[i] = ph;
+      while (k < DK.length && DK[k].t <= t) { d = DK[k].dir; k++; }
+      if (Math.abs(v) > 25) d = Math.sign(v);
+      F.dirs[i] = d;
     }
-    // smooth speed a little (it drives the trail)
-    const s2 = new Float32Array(n);
-    for (let i = 0; i < n; i++) { let a = 0, c = 0; for (let j = Math.max(0, i - 8); j <= Math.min(n - 1, i + 8); j++) { a += M.spd[j]; c++; } s2[i] = a / c; }
-    M.spd = s2;
   };
-  const at = (arr, t) => arr[clamp(Math.round((t - M.t0) * HZ), 0, M.n - 1)];
-  M.rotAt = (t) => at(M.rot, t) + M.spins.reduce((s, sp) => s + sp.deg * P(t, sp.a, sp.b, sp.e ?? E.io), 0);
-  M.squash = (t) => {
+  const idx = (t) => clamp(Math.round((t - T_MIN) * HZ), 0, F.n - 1);
+  const poseAt = (t) => {
+    const K = F.poses;
+    let i = 0;
+    while (i + 1 < K.length && K[i + 1].t <= t) i++;
+    const cur = K[i], prev = K[Math.max(0, i - 1)];
+    const k = i === 0 ? 1 : P(t, cur.t, cur.t + (cur.d ?? 0.3), E.io);
+    const res = (p) => ({ ...STAND, ...(typeof p === 'function' ? p(t) : p) });
+    return [res(prev.p), res(cur.p), k];
+  };
+  const jumpAt = (t) => {
+    let y = 0, st = 0;
+    for (const j of F.jumps) if (t > j.a && t < j.b) { const u = (t - j.a) / (j.b - j.a); y += j.h * Math.sin(Math.PI * u); st += 0.1 * Math.sin(Math.PI * u); }
+    return [y, st];
+  };
+  const squashAt = (t) => {
     let sq = 0;
-    const hits = [...M.hits];
-    for (const s of M.segs) if (s.via || s.hop) hits.push({ t: s.a - 0.07, a: 0.14 }, { t: s.b, a: s.land ?? 0.26 });
-    for (const h of hits) { const tau = t - h.t; if (tau >= 0 && tau < 1) sq += h.a * Math.exp(-6 * tau) * Math.sin(20 * tau); }
-    // stretch along the flight
-    for (const s of M.segs) if ((s.via || s.hop) && t > s.a && t < s.b) sq -= 0.12 * Math.sin((Math.PI * (t - s.a)) / (s.b - s.a));
+    const hits = [...F.hits, ...F.jumps.flatMap((j) => [{ t: j.a - 0.07, a: 0.13 }, { t: j.b, a: 0.2 }])];
+    for (const h of hits) { const tau = t - h.t; if (tau >= 0 && tau < 1) sq += h.a * Math.exp(-6.5 * tau) * Math.sin(22 * tau); }
     return sq;
   };
-  M.burst = o.bursts ?? [];
-  every((t) => {
-    if (!M.rot) M.bake();
-    const vis = t >= M.show[0] && t <= M.show[1];
-    g.style.display = trailG.style.display = vis ? '' : 'none';
+  const blinking = (t) => {
+    const n0 = Math.floor(t / 2.9);
+    for (let n = n0 - 1; n <= n0 + 1; n++) {
+      const tb = 0.6 + n * 2.9 + rnd(F.seed * 31 + n) * 1.3;
+      if (t >= tb && t < tb + 0.13) return true;
+    }
+    return false;
+  };
+  F.eval = (t) => {
+    if (!F.spd) F.bake();
+    if (F._t === t) return F._J;
+    const i = idx(t), x = F.xAt(t), dir = F.dirs[i], spd = F.spd[i];
+    const w = clamp(spd / 110), run = clamp((spd - 300) / 250);
+    const G = gait(F.ph[i], run);
+    const [A, B, k] = poseAt(t);
+    const mix = (key) => lerp(A[key], B[key], k);
+    const legs = {};
+    for (const side of ['N', 'F']) {
+      const pl = [lerp(A.legs[side][0], B.legs[side][0], k), lerp(A.legs[side][1], B.legs[side][1], k)];
+      legs[side] = [lerp(pl[0], G.legs[side][0], w), lerp(pl[1], G.legs[side][1], w)];
+    }
+    const slope = (F.ground(x + 10) - F.ground(x - 10)) / 20;
+    let lean = lerp(mix('lean'), G.lean, w) + deg(Math.atan(Math.max(0, -slope * dir))) * 0.4 * w;
+    const off = (h, kn) => [Math.sin(rad(h)) * TH * s + Math.sin(rad(h - kn)) * SH * s, Math.cos(rad(h)) * TH * s + Math.cos(rad(h - kn)) * SH * s];
+    const oN = off(...legs.N), oF = off(...legs.F);
+    const [jy, jst] = jumpAt(t);
+    let hipY = Math.min(F.ground(x + dir * oN[0]) - oN[1], F.ground(x + dir * oF[0]) - oF[1]) - 7 * s;
+    hipY -= (w * G.lift + jy) * s;
+    const hip = [x, hipY];
+    const th = rad(dir * lean), ct = Math.cos(th), st = Math.sin(th);
+    const tp = (lx, ly) => [hip[0] + (dir * lx * ct - ly * st) * s, hip[1] + (dir * lx * st + ly * ct) * s];
+    const tilt = mix('tilt'), look = mix('look');
+    const neck = tp(0, -64);
+    const ha = rad(dir * (lean + tilt)), hc = Math.cos(ha), hs = Math.sin(ha);
+    const headC = [neck[0] - -23 * hs * s, neck[1] + -23 * hc * s];
+    const hp = (lx, ly) => [headC[0] + (dir * lx * hc - ly * hs) * s, headC[1] + (dir * lx * hs + ly * hc) * s];
+    const J = { t, x, dir, s, hip, neck, headC, hp, tp, lean, look, smile: mix('smile'), ground: F.ground(x), sq: squashAt(t) - jst };
+    J.shN = tp(2, -55); J.shF = tp(-3, -56);
+    const armAngles = (pose, side) => {
+      const tgt = pose[side + 'T'];
+      if (tgt) return ik(side === 'N' ? J.shN : J.shF, typeof tgt === 'function' ? tgt(J) : tgt, UA * s, FA * s, dir, pose.bend ?? 1);
+      return [pose[side][0] + lean * 0.7, pose[side][1]];
+    };
+    const swing = mix('swing') * w;
+    for (const side of ['N', 'F']) {
+      const a0 = armAngles(A, side), a1 = armAngles(B, side);
+      let sh = lerp(a0[0], a1[0], k), el = lerp(a0[1], a1[1], k);
+      sh = lerp(sh, G[side][0] + lean * 0.6, swing);
+      el = lerp(el, G[side][1], swing);
+      const S0 = side === 'N' ? J.shN : J.shF;
+      const e = [S0[0] + dir * Math.sin(rad(sh)) * UA * s, S0[1] + Math.cos(rad(sh)) * UA * s];
+      const h = [e[0] + dir * Math.sin(rad(sh + el)) * FA * s, e[1] + Math.cos(rad(sh + el)) * FA * s];
+      J['el' + side] = e; J['ha' + side] = h;
+      const [hA, kA] = legs[side];
+      const kn = [hip[0] + dir * Math.sin(rad(hA)) * TH * s, hip[1] + Math.cos(rad(hA)) * TH * s];
+      const an = [kn[0] + dir * Math.sin(rad(hA - kA)) * SH * s, kn[1] + Math.cos(rad(hA - kA)) * SH * s];
+      J['kn' + side] = kn; J['an' + side] = an; J['to' + side] = [an[0] + dir * 13 * s, an[1] + 0.5 * s];
+    }
+    J.blink = blinking(t) || (F.blinks || []).some((b) => t >= b && t < b + 0.14);
+    J.props = F.props.filter((p) => t >= p.a && t < p.b).map((p) => p.name);
+    J.lens = hp(70, -10);
+    J.speed = spd;
+    F._t = t; F._J = J;
+    return J;
+  };
+  F.overhead = (J) => [J.hip[0] + J.dir * 6 * s, J.hip[1] - 168 * s];
+
+  const line = (...p) => 'M' + p.map((q) => `${f1(q[0])} ${f1(q[1])}`).join(' L');
+  F.draw = (t) => {
+    const vis = t >= F.show[0] && t <= F.show[1];
+    root.style.display = vis ? '' : 'none';
     if (!vis) return;
-    if (M.fade) g.setAttribute('opacity', (1 - P(t, M.fade[0], M.fade[1])).toFixed(3));
-    const [x, y] = M.pos(t), k = M.k(t), sq = M.squash(t), r = MR * k;
-    g.setAttribute('transform', `translate(${f1(x)} ${f1(y + r)}) scale(${(1 + sq * 0.55).toFixed(4)} ${(1 - sq).toFixed(4)}) translate(0 ${f1(-r)}) scale(${k.toFixed(4)})`);
-    spin.setAttribute('transform', `rotate(${f1(M.rotAt(t))})`);
-    const sw = (2.4 * clamp(k, 1, 1.5)) / k;
-    body.setAttribute('stroke-width', sw.toFixed(3));
-    eye.setAttribute('stroke-width', sw.toFixed(3));
-    tick.setAttribute('stroke-width', sw.toFixed(3));
-    // trail
-    const sp = clamp((at(M.spd, t) - 120) / 500);
-    let q = [x, y];
-    trail.forEach((ln, i) => {
-      const p = M.pos(t - (i + 1) * 0.022);
-      ln.setAttribute('x1', f1(q[0])); ln.setAttribute('y1', f1(q[1]));
-      ln.setAttribute('x2', f1(p[0])); ln.setAttribute('y2', f1(p[1]));
-      ln.setAttribute('opacity', (sp * 0.55 * (1 - i / 16)).toFixed(3));
-      ln.setAttribute('stroke-width', f1(3.4 * k * (1 - i / 20)));
-      q = p;
-    });
-    // glints: a slow twinkle, and a ring of sparks on each burst
-    let bk = 0;
-    for (const b of M.burst) { const tau = t - b; if (tau >= 0 && tau < 0.6) bk = Math.max(bk, 1 - tau / 0.6); }
+    const J = F.eval(t);
+    const { hp, tp, dir } = J;
+    part.armF.setAttribute('d', line(J.shF, J.elF, J.haF));
+    part.handF.setAttribute('cx', f1(J.haF[0])); part.handF.setAttribute('cy', f1(J.haF[1]));
+    part.legF.setAttribute('d', line(J.hip, J.knF, J.anF));
+    part.footF.setAttribute('d', line(J.anF, J.toF));
+    part.legN.setAttribute('d', line(J.hip, J.knN, J.anN));
+    part.footN.setAttribute('d', line(J.anN, J.toN));
+    const q = (a, b) => `${f1(a[0])} ${f1(a[1])} ${f1(b[0])} ${f1(b[1])}`;
+    part.torso.setAttribute('d', `M${line(tp(-14, 5), tp(13, 5), tp(14, -50)).slice(1)} Q${q(tp(15, -66), tp(0, -66))} Q${q(tp(-17, -66), tp(-16, -50))} Z`);
+    // scarf trails behind, flutters with speed
+    const sp = clamp(J.speed / 500);
+    const nk = tp(0, -62);
+    const flut = Math.sin(t * 17 + F.seed) * (3 + 7 * sp);
+    const tail = [nk[0] - dir * (16 + 20 * sp) * J.s, nk[1] + (12 - 6 * sp + flut) * J.s];
+    part.scarf.setAttribute('d', `M${f1(nk[0])} ${f1(nk[1])} Q${f1(nk[0] - dir * 10 * J.s)} ${f1(nk[1] + (2 + flut * 0.5) * J.s)} ${f1(tail[0])} ${f1(tail[1])}`);
+    part.knot.setAttribute('cx', f1(nk[0])); part.knot.setAttribute('cy', f1(nk[1]));
+    part.head.setAttribute('d', circlePath(J.headC[0], J.headC[1], 21 * J.s));
+    const ch = hp(12, 7);
+    part.cheek.setAttribute('cx', f1(ch[0])); part.cheek.setAttribute('cy', f1(ch[1]));
+    const ly = -2 + J.look * 2.5;
+    const eye = (lx) => {
+      const c = hp(lx, ly);
+      if (J.blink) return `M${f1(c[0] - 2.6 * J.s)} ${f1(c[1])} L${f1(c[0] + 2.6 * J.s)} ${f1(c[1])}`;
+      return circlePath(c[0], c[1], 2.4 * J.s);
+    };
+    part.eyes.setAttribute('d', eye(7) + ' ' + eye(15));
+    const m0 = hp(9, 9), m1 = hp(17, 7.5), mc = hp(13, 9 + 4 * J.smile);
+    part.mouth.setAttribute('d', `M${f1(m0[0])} ${f1(m0[1])} Q${f1(mc[0])} ${f1(mc[1])} ${f1(m1[0])} ${f1(m1[1])}`);
+    if (part.glasses) {
+      const g1 = hp(7, ly), g2 = hp(15, ly);
+      part.glasses.setAttribute('d', circlePath(g1[0], g1[1], 5 * J.s) + ' ' + circlePath(g2[0], g2[1], 5 * J.s) + ' ' + line(hp(-18, -2), hp(2, ly)));
+    }
+    const hq = (a, b, c) => `C${f1(hp(...a)[0])} ${f1(hp(...a)[1])} ${f1(hp(...b)[0])} ${f1(hp(...b)[1])} ${f1(hp(...c)[0])} ${f1(hp(...c)[1])}`;
+    const hm = (a) => `M${f1(hp(...a)[0])} ${f1(hp(...a)[1])}`;
+    if (F.hat === 'helmet') part.hat.setAttribute('d', `${hm([-22, -5])} ${hq([-22, -32], [22, -32], [22, -5])} Z ${hm([-25, -5])} L${f1(hp(31, -5)[0])} ${f1(hp(31, -5)[1])}`);
+    else if (F.hat === 'cap') part.hat.setAttribute('d', `${hm([-22, -9])} ${hq([-24, -32], [22, -34], [27, -12])} ${hq([10, -7], [-10, -7], [-22, -9])} Z`);
+    else part.hat.setAttribute('d', `${hm([-21, -3])} ${hq([-21, -27], [15, -29], [21, -9])} ${hq([9, -16], [-8, -13], [-21, -3])} Z`);
+    if (part.bun) { const b = hp(-17, -21); part.bun.setAttribute('d', circlePath(b[0], b[1], 8.5 * J.s)); }
+    part.armN.setAttribute('d', line(J.shN, J.elN, J.haN));
+    part.handN.setAttribute('cx', f1(J.haN[0])); part.handN.setAttribute('cy', f1(J.haN[1]));
+    // props
+    const has = (n) => J.props.includes(n);
+    part.spy.style.display = has('spyglass') ? '' : 'none';
+    if (has('spyglass')) {
+      const a = hp(14, -3), b = hp(36, -5), c = hp(56, -8), d = hp(68, -10);
+      part.spyA.setAttribute('d', line(a, b)); part.spyB.setAttribute('d', line(b, c)); part.spyC.setAttribute('d', line(c, d));
+      part.spyL.setAttribute('d', circlePath(d[0], d[1], 4.2 * J.s));
+    }
+    part.pointer.style.display = part.pointerTip.style.display = has('pointer') ? '' : 'none';
+    if (has('pointer')) {
+      const v = norm([J.haN[0] - J.elN[0], J.haN[1] - J.elN[1]]);
+      const tip = [J.haN[0] + v[0] * 118 * J.s, J.haN[1] + v[1] * 118 * J.s];
+      part.pointer.setAttribute('d', line([J.haN[0] - v[0] * 10, J.haN[1] - v[1] * 10], tip));
+      part.pointerTip.setAttribute('cx', f1(tip[0])); part.pointerTip.setAttribute('cy', f1(tip[1]));
+    }
+    part.paper.style.display = has('paper') ? '' : 'none';
+    if (has('paper')) {
+      const m = lerp2(J.haN, J.haF, 0.5), c = [m[0], m[1] - 22 * J.s];
+      const pts = [[-24, -30], [18, -30], [26, -22], [26, 30], [-24, 30]].map(([u, v]) => [c[0] + u * J.s * dir, c[1] + v * J.s]);
+      part.paper.setAttribute('d', pathOf(pts, true) + ' ' + line([c[0] - 14 * dir, c[1] - 12], [c[0] + 14 * dir, c[1] - 12]) + ' ' + line([c[0] - 14 * dir, c[1]], [c[0] + 10 * dir, c[1]]) + ' ' + line([c[0] - 14 * dir, c[1] + 12], [c[0] + 12 * dir, c[1] + 12]));
+    }
+    // squash & stretch around the feet
+    const gy = J.ground, sq = J.sq;
+    root.setAttribute('transform', `translate(${f1(J.x)} ${f1(gy)}) scale(${(1 + sq * 0.55).toFixed(4)} ${(1 - sq).toFixed(4)}) translate(${f1(-J.x)} ${f1(-gy)})`);
+    // sketched in the first time we see it
+    if (F.reveal) {
+      const kk = P(t, F.reveal[0], F.reveal[1], E.io);
+      for (const p of strokes) { p.style.strokeDasharray = kk < 1 ? '1 1' : 'none'; p.style.strokeDashoffset = 1 - kk; }
+      const fo = P(t, lerp(F.reveal[0], F.reveal[1], 0.6), F.reveal[1]);
+      for (const p of [part.torso, part.head, part.hat, part.bun, part.handN, part.handF, part.knot, part.eyes, part.cheek]) if (p) p.style.fillOpacity = fo;
+    }
+  };
+  every((t) => { if (t >= W.a && t <= W.b) F.draw(t); });
+  return F;
+}
+
+// A small gold star that follows Atlas around (his "world"), or rides on his hands.
+function companion(W, F, keys) {
+  const g = svg('g', {}, W.cam);
+  const body = svg('path', { d: atlasStar(0, 0, 22), fill: GOLD, ...ink(2.2, NAVY), fill: GOLD }, g);
+  const glints = [];
+  for (let k = 0; k < 4; k++) glints.push(svg('path', { ...ink(2, GOLD) }, g));
+  const target = (m, t) => {
+    if (m.m === 'at') return [m.x, m.y, m.k ?? 1, m.r ?? 0];
+    if (m.m === 'overhead') { const J = F.eval(t); const [x, y] = F.overhead(J); return [x, y + Math.sin(t * 5) * 1.5, 1.55 * F.s, 0]; }
+    // shoulder: floats behind and above, lags a beat, bobs
+    const J = F.eval(Math.max(T_MIN, t - 0.16));
+    return [J.neck[0] - J.dir * 48 * F.s, J.neck[1] - 62 * F.s + Math.sin(t * 3.1) * 7, 0.95 * F.s, 0];
+  };
+  every((t) => {
+    if (t < W.a || t > W.b) return;
+    let i = -1;
+    while (i + 1 < keys.length && keys[i + 1].t <= t) i++;
+    if (i < 0 || keys[i].m === 'hidden') { g.style.display = 'none'; return; }
+    g.style.display = '';
+    const cur = keys[i], prev = keys[Math.max(0, i - 1)];
+    const k = i === 0 || prev.m === 'hidden' ? 1 : P(t, cur.t, cur.t + (cur.d ?? 0.5), E.io);
+    const a = target(prev, t), b = target(cur, t);
+    const x = lerp(a[0], b[0], k), y = lerp(a[1], b[1], k), sc = Math.exp(lerp(Math.log(a[2]), Math.log(b[2]), k));
+    const spin = t * 38 + (cur.spin ?? 0) * E.io(k);
+    g.setAttribute('transform', `translate(${f1(x)} ${f1(y)}) rotate(${f1(spin + lerp(a[3], b[3], k))}) scale(${sc.toFixed(3)})`);
+    body.setAttribute('stroke-width', (2.2 / Math.max(1, sc * 0.6)).toFixed(2));
     glints.forEach((gl, n) => {
-      const an = rad(n * 45 + 22.5);
-      if (bk > 0) {
-        const r0 = MR + 8 + (1 - bk) * 34, r1 = r0 + 10 * bk;
-        gl.setAttribute('d', `M${f1(Math.cos(an) * r0)} ${f1(Math.sin(an) * r0)} L${f1(Math.cos(an) * r1)} ${f1(Math.sin(an) * r1)}`);
-        gl.setAttribute('opacity', bk.toFixed(2));
-      } else if (n % 2 === 0) {
-        const ph = (t * 1.1 + n * 0.13) % 1, r0 = MR + 6 + ph * 12;
-        gl.setAttribute('d', `M${f1(Math.cos(an) * r0)} ${f1(Math.sin(an) * r0)} L${f1(Math.cos(an) * (r0 + 6))} ${f1(Math.sin(an) * (r0 + 6))}`);
-        gl.setAttribute('opacity', (Math.sin(ph * Math.PI) * 0.8 * (k < 2 ? 1 : 0)).toFixed(2));
-      } else gl.setAttribute('opacity', 0);
+      const ph = (t * 1.3 + n * 0.25) % 1, an = rad(n * 90 + 45), r0 = 30 + ph * 14;
+      gl.setAttribute('d', `M${f1(Math.cos(an) * r0)} ${f1(Math.sin(an) * r0)} L${f1(Math.cos(an) * (r0 + 7))} ${f1(Math.sin(an) * (r0 + 7))}`);
+      gl.setAttribute('opacity', (Math.sin(ph * Math.PI) * 0.9 * (sc < 2 ? 1 : 0)).toFixed(2));
     });
   });
-  return M;
+  return g;
 }
+
 // ============================================================ drawing tools ==
 // A pencil whose lead follows `tip(t)`: slides in, draws, lifts away.
 function pencil(W, tip, a, b, c, d) {
@@ -591,6 +782,10 @@ function buildChrome() {
     if (i % 10 === 0) labels.push(svg('text', { x: i * 5, y: 18, 'font-size': 12, 'text-anchor': 'middle', class: 'mono', fill: 'rgba(35,62,101,.55)', text: '' }, rl));
   }
   svg('text', { x: 572, y: 1026, 'font-size': 12, class: 'mono', fill: 'rgba(35,62,101,.55)', text: 'cm' }, g);
+  // progress: one small star per chapter
+  const pr = svg('g', { transform: 'translate(1590 150)' }, g);
+  const stars = [];
+  for (let i = 0; i < 7; i++) stars.push(svg('path', { d: starPath(0, 0, 9, 16), transform: `translate(${i * 36} 0)`, ...ink(1.2, GOLD) }, pr));
   // title block, bottom right
   const tb = svg('g', { transform: 'translate(1290 978)' }, g);
   svg('rect', { x: 0, y: 0, width: 560, height: 60, ...ink(1, 'rgba(35,62,101,.45)') }, tb);
@@ -609,6 +804,11 @@ function buildChrome() {
     let idx = 0;
     CHAPTERS.forEach((s, i) => { if (t >= s) idx = i; });
     sheet.textContent = `0${idx + 1} / 07`;
+    stars.forEach((st, i) => {
+      const pop = i === idx ? 1 + 0.35 * (1 - P(t, CHAPTERS[i], CHAPTERS[i] + 0.5, E.out)) + 0.3 : 1;
+      st.setAttribute('fill', i <= idx ? GOLD : 'none');
+      st.setAttribute('transform', `translate(${i * 36} 0) scale(${pop.toFixed(3)}) rotate(${i === idx ? f1(t * 20) : 0})`);
+    });
     const W = activeWorld(t), cm = W.c;
     scale.textContent = `1 : ${Math.max(1, Math.round(50 / cm.z))}`;
     const px = cm.x * cm.z * 0.5 + 4000;
@@ -646,7 +846,8 @@ function buildDust() {
 const GROUND = 440;
 const fData = (x) => 440 - 450 / (1 + Math.exp(-(x - 2600) / 115));
 const ground1 = (x) => (x < 1950 ? GROUND : fData(x));
-const W1 = world('w1', -1, 16.24, [[0, 0, 0, 1]]); // ends as the iris finishes opening
+const W1 = world('w1', -1, 16.35, [[0, 0, 0, 1]]);
+const atlas1 = figure(W1, { ground: ground1, scale: 1.2, seed: 3 });
 
 function buildIntro() {
   const g = W1.cam, fl = W1.flat;
@@ -677,7 +878,7 @@ function buildIntro() {
   on(svg('path', { d: sq(0), ...ink(1.2, 'rgba(35,62,101,.55)') }, g), 'draw', 1.35, 2.1, { out: OUT });
   on(svg('path', { d: sq(45), ...ink(1.2, 'rgba(35,62,101,.55)') }, g), 'draw', 1.5, 2.25, { out: OUT });
   on(svg('path', { d: atlasStar(cx, cy, R), ...ink(2.4) }, g), 'draw', 1.7, 2.6, { out: [3.6, 4.15] });
-  // the gold star (hands over to the travelling mark at 4.2)
+  // the gold star (hands over to Atlas's companion star at 4.2)
   on(svg('path', { d: atlasStar(cx, cy, 148), fill: GOLD }, g), 'fade', 2.35, 2.8, { out: [4.19, 4.2] });
   on(svg('path', { d: atlasStar(cx, cy, 148), ...ink(2.2) }, g), 'draw', 2.0, 2.7, { out: [4.19, 4.2] });
   on(svg('circle', { cx, cy, r: 42, ...ink(1.6) }, g), 'draw', 2.5, 3.0, { out: OUT });
@@ -765,7 +966,7 @@ function buildMep() {
   const wheelIn = svg('g', {}, g);
   wheelIn.appendChild(wheel);
   on(wheelIn, 'pop', 6.9, 7.3, { ease: E.back });
-  const wheelAngle = (t) => -90 + 450 * P(t, 8.0, 8.85, E.io);
+  const wheelAngle = (t) => -90 + 450 * P(t, 7.85, 8.75, E.io);
   every((t) => wheel.setAttribute('transform', `translate(${VC[0]} ${VC[1]}) rotate(${f1(wheelAngle(t) + 90)})`));
 
   // wash basin + water from the tap
@@ -871,7 +1072,7 @@ function buildData() {
   for (let x = 2100; x <= 2940; x += 10) fit.push([x, fData(x)]);
   const trend = svg('path', { d: pathOf(fit), ...ink(3.4, OX), pathLength: 1, 'stroke-dasharray': '1 1' }, g);
   every((t) => {
-    const k = t < 10.5 ? 0 : clamp((mark1.pos(t)[0] - 2100 + 40) / 840);
+    const k = t < 10.5 ? 0 : clamp((atlas1.xAt(t) - 2100 + 50) / 840);
     trend.style.strokeDashoffset = 1 - k;
     trend.style.visibility = k > 0.001 ? 'visible' : 'hidden';
   });
@@ -904,57 +1105,68 @@ function buildData() {
   headline({ ...COPY.data, x: 150, y: 150, size: 100, a: 12.2, b: 15.0, subW: 560 });
 }
 
-// The mark in W1: born from the construction, drops to the ground, rolls into the
-// building, docks on the valve and turns it, bounces out and rolls up the trend.
-let mark1;
-function directMark1() {
-  const K = 1.5, gy = (x) => ground1(x) - MR * K;
-  const onG = (x) => [x, gy(x)];
-  mark1 = mark(W1, {
-    show: [4.19, 16.4],
-    start: [0, 0],
-    ks: [[-99, 148 / MR], [4.3, 148 / MR], [4.95, K, E.back], [14.3, K], [15.2, 1.75]],
-    spins: [{ a: 4.3, b: 5.0, deg: -405 }, { a: 8.0, b: 8.85, deg: 450 }, { a: 8.95, b: 9.3, deg: 360 }, { a: 13.4, b: 13.75, deg: 180 }],
-    segs: [
-      { a: 5.0, b: 5.45, to: onG(150), via: [70, -90] },
-      { a: 5.5, b: 6.3, to: onG(680), ground: ground1, e: 'io' },
-      { a: 6.36, b: 6.82, to: onG(900), ground: ground1, hop: 130, e: 'lin' },
-      { a: 6.88, b: 7.5, to: onG(1080), ground: ground1, e: 'io' },
-      { a: 7.56, b: 7.98, to: VC, via: [1110, 170], land: 0.2 },
-      { a: 8.95, b: 9.3, to: VC, hop: 70, e: 'lin' },
-      { a: 9.4, b: 9.85, to: onG(1330), via: [1270, 170] },
-      { a: 9.9, b: 13.2, to: onG(2930), ground: ground1, e: 'trap' },
-      { a: 13.4, b: 13.75, to: onG(2930), hop: 55, e: 'lin' },
-    ],
-    bursts: [8.85, 9.3],
-  });
+// Atlas in W1: runs in, takes the star, walks into the building, opens the valve, runs to the chart, climbs, looks ahead.
+function directAtlas1() {
+  const A = atlas1;
+  A.moves = [{ t: 2.55, x: -1500 }, { t: 4.35, x: -80, acc: 0.25 }, { t: 5.55, x: -80 }, { t: 7.7, x: 1100 }, { t: 9.3, x: 1100 }, { t: 13.2, x: 2930, acc: 0.14 }];
+  const lift = (J) => { const s = atlas1.overhead(J); return s; };
+  const titan = { NT: (J) => [lift(J)[0] + J.dir * 24, lift(J)[1] + 26], FT: (J) => [lift(J)[0] - J.dir * 22, lift(J)[1] + 26], tilt: -14, look: -1, swing: 0, legs: { N: [10, 16], F: [-8, 14] }, smile: 1 };
+  const valve = (t) => {
+    const th = rad(-90 + 450 * P(t, 7.85, 8.75, E.io));
+    return {
+      NT: [VC[0] + 24 * Math.cos(th), VC[1] + 24 * Math.sin(th)],
+      FT: [VC[0] + 24 * Math.cos(th + Math.PI), VC[1] + 24 * Math.sin(th + Math.PI)],
+      lean: 9 + Math.sin(t * 14) * 1.5, tilt: 6, look: 0.6, swing: 0, smile: 0.1, legs: { N: [14, 8], F: [-12, 6] },
+    };
+  };
+  const spy = { NT: (J) => J.hp(34, 12), FT: (J) => J.hp(54, 8), tilt: -6, swing: 0, smile: 0.6, legs: { N: [8, 6], F: [-8, 6] } };
+  A.poses = [
+    { t: -99, p: {} },
+    { t: 4.4, p: { tilt: -30, look: -1, smile: 0.9 }, d: 0.3 },
+    { t: 4.72, p: titan, d: 0.45 },
+    { t: 6.05, p: { smile: 0.8 }, d: 0.4 },
+    { t: 7.6, p: valve, d: 0.3 },
+    { t: 8.8, p: { N: [165, 15], F: [150, 20], tilt: -12, look: -1, smile: 1, swing: 0 }, d: 0.15 },
+    { t: 9.25, p: { smile: 0.8 }, d: 0.2 },
+    { t: 13.3, p: spy, d: 0.35 },
+  ];
+  A.props = [{ a: 13.45, b: 99, name: 'spyglass' }];
+  A.jumps = [{ a: 8.9, b: 9.18, h: 42 }, { a: 9.56, b: 9.9, h: 70 }];
+  A.hits = [{ t: 5.22, a: 0.24 }, { t: 4.36, a: 0.12 }];
+  A.blinks = [4.9, 13.95];
+  companion(W1, A, [
+    { t: -99, m: 'hidden' },
+    { t: 4.2, m: 'at', x: 0, y: 0, k: 148 / 22, d: 0.01 },
+    { t: 4.5, m: 'overhead', d: 0.72, spin: 405 },
+    { t: 6.05, m: 'shoulder', d: 0.6 },
+  ]);
 }
 
 function cameraW1() {
-  const lens = mark1.pos(15.0);
+  const lens = atlas1.eval(14.9).lens;
   W1.setKeys([
     [0.0, -430, 0, 3.0, -3],
     [1.05, 200, 0, 2.1, -1.5],
     [2.0, -330, 20, 1.1, 0],
     [3.0, -420, 50, 1.0, 0],
-    [4.0, -330, 80, 1.08, 0],
-    [4.8, -150, 120, 1.3, 0],
-    [5.6, 160, 250, 1.35, 0],
-    [6.7, 620, 210, 1.2, 0],
-    [7.7, 1080, 220, 1.5, 0],
-    [8.4, 1150, 250, 1.8, 0.8],
+    [4.0, -330, 110, 1.08, 0],
+    [4.8, -110, 170, 1.4, 0],
+    [5.6, 60, 200, 1.35, 0],
+    [6.7, 560, 190, 1.2, 0],
+    [7.7, 1080, 200, 1.5, 0],
+    [8.4, 1150, 240, 1.8, 0.8],
     [9.1, 1150, 180, 1.3, 0],
     [10.0, 880, 90, 0.74, 0],
     [11.0, 1750, 80, 0.8, 0],
     [12.1, 2440, 120, 1.05, 0],
     [13.3, 2800, 10, 1.15, 0],
     [14.4, 2990, -20, 1.25, 0],
-    [15.25, lens[0], lens[1], 3.4, 0],
-    [16.4, lens[0], lens[1], 5.0, 0],
+    [15.25, lens[0], lens[1], 2.9, 0],
+    [16.4, lens[0], lens[1], 4.2, 0],
   ]);
 }
 
-// ================================================ iris: through the mark ==
+// ============================================== iris: through the spyglass ==
 function buildIris() {
   const fx = document.getElementById('fx');
   const ring = svg('g', {}, fx);
@@ -967,8 +1179,8 @@ function buildIris() {
     W2.div.style.background = t < B ? PAPER : 'none';
     if (t < A) { W2.div.style.clipPath = 'circle(0px at 50% 50%)'; return; }
     if (t > B) { W2.div.style.clipPath = 'none'; return; }
-    const [x, y] = toScreen(W1, mark1.pos(t));
-    const r = 8.5 * mark1.k(t) * W1.c.z + Math.pow(P(t, A, B, E.io), 1.6) * 1400;
+    const [x, y] = toScreen(W1, atlas1.eval(t).lens);
+    const r = 6 * W1.c.z + Math.pow(P(t, A, B, E.io), 1.6) * 1400;
     W2.div.style.clipPath = `circle(${f1(r)}px at ${f1(x)}px ${f1(y)}px)`;
     for (const c of [r1, r2]) { c.setAttribute('cx', f1(x)); c.setAttribute('cy', f1(y)); }
     r1.setAttribute('r', f1(r)); r2.setAttribute('r', f1(Math.max(0, r - 7)));
@@ -977,17 +1189,16 @@ function buildIris() {
 }
 
 // =============================================================== W2 · AI ==
-const W2 = world('w2', 15.1, 21.92, [
+const W2 = world('w2', 15.1, 21.95, [
   [15.1, 210, 10, 1.3, 2],
   [16.2, 80, -40, 1.1, 0],
   [17.2, -120, -80, 1.0, 0],
   [19.0, -70, -80, 1.0, 0],
   [20.3, 20, -90, 1.05, 0],
   [20.95, 280, -100, 1.35, 0],
-  [21.45, 540, -98, 5, 0],
-  [21.92, 570, -95, 20, 0],
-  [22.3, 570, -95, 80, 0],
+  [21.9, 570, -95, 26, 0],
 ]);
+const atlas2 = figure(W2, { ground: () => 320, scale: 1.2, seed: 5 });
 function buildAi() {
   const g = W2.cam, fl = W2.flat;
   on(svg('line', { x1: -1300, y1: 320, x2: 900, y2: 320, ...ink(2.2) }, g), 'draw', 16.3, 17.2);
@@ -1003,7 +1214,7 @@ function buildAi() {
   }
   on(doc, 'pop', 16.8, 17.25, { ease: E.back });
   const top = svg('path', { d: 'M-490 108 h92 l28 28 v30 h-120 Z', ...ink(2.2), fill: PAPER }, g);
-  on(top, 'pop', 18.3, 18.5, { ease: E.back });
+  on(top, 'pop', 18.6, 18.8, { ease: E.back });
   const dl = svg('text', { x: -410, y: 352, 'font-size': 18, class: 'mono', fill: 'var(--ink-soft)', 'text-anchor': 'middle', 'letter-spacing': 2, text: 'VERİ' }, fl);
   on(dl, 'fade', 17.2, 17.6);
 
@@ -1029,7 +1240,7 @@ function buildAi() {
   svg('circle', { cx: N.llm[0], cy: N.llm[1], r: N.llm[2] - 12, ...ink(1.2, 'rgba(35,62,101,.35)', { 'stroke-dasharray': '3 7' }) }, llmIn);
   on(llmIn, 'pop', 15.3, 15.85, { ease: E.back });
   every((t) => {
-    const think = P(t, 19.45, 19.65) * (1 - P(t, 20.05, 20.4));
+    const think = P(t, 18.7, 19.0) * (1 - P(t, 20.0, 20.4));
     const s = 1 + Math.sin(t * (3 + think * 9)) * (0.02 + think * 0.035);
     llm.setAttribute('transform', `translate(${N.llm[0]} ${N.llm[1]}) scale(${s.toFixed(4)}) translate(${-N.llm[0]} ${-N.llm[1]})`);
   });
@@ -1041,7 +1252,7 @@ function buildAi() {
   }
   every((t) => {
     // orbits faster while thinking (closed form, so seeking works)
-    const base = t * 0.35, extra = 5 * clamp(t - 19.45, 0, 0.65);
+    const base = t * 0.35, extra = 2.2 * (clamp(t - 18.7, 0, 1.5));
     for (const { line, dot, k } of sats) {
       const a = (k / 8) * Math.PI * 2 + base + extra;
       const rr = 140 + Math.sin(t * 2 + k) * 6;
@@ -1069,6 +1280,7 @@ function buildAi() {
     const w = [200, 170, 120][k];
     on(svg('path', { d: `M${BUB[0] - 120} ${BUB[1] - 55 + k * 30} q ${w / 4} -5 ${w / 2} 0 t ${w / 2} 0`, ...ink(2.2, 'rgba(35,62,101,.6)') }, g), 'draw', 20.1 + k * 0.14, 20.45 + k * 0.14);
   }
+  on(svg('path', { d: starPath(BUB[0] + 140, BUB[1] - 96, 7, 17), fill: OX }, g), 'pop', 20.55, 20.9, { ease: E.back });
 
   // data pulses along the edges while it thinks
   [[0, 2, 4], [1, 3, 4]].forEach((route, ri) => {
@@ -1088,25 +1300,50 @@ function buildAi() {
     });
   });
 
+  // Atlas asks a question
+  const q = svg('g', {}, g);
+  const qIn = svg('g', {}, q);
+  svg('path', { d: 'M-40 -40 h80 q14 0 14 14 v44 q0 14 -14 14 h-44 l-22 20 v-20 h-14 q-14 0 -14 -14 v-44 q0 -14 14 -14 Z', ...ink(2.4), fill: PAPER }, qIn);
+  svg('text', { x: 0, y: 14, 'text-anchor': 'middle', 'font-size': 52, class: 'note', fill: OX, text: '?' }, qIn);
+  on(qIn, 'pop', 18.5, 18.85, { ease: E.back, out: [19.85, 20.1] });
+  every((t) => { const J = atlas2.eval(t); q.setAttribute('transform', `translate(${f1(J.headC[0] + J.dir * 70)} ${f1(J.headC[1] - 78 + Math.sin(t * 4) * 3)})`); });
+
+  // the thrown page
+  const sheet = svg('path', { d: 'M-24 -30 h42 l8 8 v52 h-50 Z', ...ink(2), fill: PAPER }, g);
+  every((t) => {
+    const a = 18.14, b = 18.62;
+    if (t < a || t > b) { sheet.style.display = 'none'; return; }
+    sheet.style.display = '';
+    const u = (t - a) / (b - a);
+    const J = atlas2.eval(a);
+    const p0 = [J.haN[0], J.haN[1] - 20], p1 = [-430, 140];
+    const x = lerp(p0[0], p1[0], u), y = lerp(p0[1], p1[1], u) - Math.sin(Math.PI * u) * 170;
+    sheet.setAttribute('transform', `translate(${f1(x)} ${f1(y)}) rotate(${f1(u * 380)})`);
+  });
+
   headline({ ...COPY.ai, x: 150, y: 150, size: 100, a: 17.3, b: 20.8, subW: 600 });
 }
-// The mark as the question: rolls in, lands on the data, travels through RAG into
-// the LLM, spins while it thinks, and lands in the answer.
-function directMark2() {
-  mark(W2, {
-    show: [16.8, 22],
-    ks: [[-99, 1.3]],
-    start: [-1150, 281],
-    segs: [
-      { a: 16.9, b: 17.9, to: [-600, 281], ground: () => 320, e: 'io' },
-      { a: 17.98, b: 18.36, to: [-425, 69], via: [-560, -60] },
-      { a: 18.7, b: 19.1, to: [-100, -150], via: [-330, -230], land: 0.18 },
-      { a: 19.18, b: 19.5, to: [210, 10], via: [60, -140], land: 0.18 },
-      { a: 20.1, b: 20.5, to: [710, -246], via: [520, -330] },
-    ],
-    spins: [{ a: 19.5, b: 20.08, deg: 1080 }],
-    bursts: [19.5, 20.5],
-  });
+function directAtlas2() {
+  const A = atlas2;
+  A.show = [16.5, 99];
+  A.moves = [{ t: 16.75, x: -1180 }, { t: 17.95, x: -640 }];
+  const carry = { NT: (J) => J.tp(34, -30), FT: (J) => J.tp(30, -24), swing: 0, smile: 0.7 };
+  const toss = (t) => ({ N: [lerp(40, 170, P(t, 18.02, 18.22, E.out)), lerp(60, 10, P(t, 18.02, 18.2))], F: [-20, 30], lean: -4, smile: 0.9, swing: 0 });
+  const think = { NT: (J) => J.hp(8, 18), FT: (J) => J.tp(10, -26), tilt: -10, look: -0.8, smile: 0.3, swing: 0 };
+  A.poses = [
+    { t: -99, p: carry },
+    { t: 17.98, p: toss, d: 0.08 },
+    { t: 18.35, p: { tilt: -6, smile: 0.6 }, d: 0.3 },
+    { t: 18.75, p: think, d: 0.35 },
+    { t: 19.35, p: (t) => ({ ...think, tilt: -10 + Math.sin(t * 7) * 4 }), d: 0.2 },
+    { t: 20.35, p: { tilt: -8, look: -0.6, smile: 0.9 }, d: 0.2 },
+    { t: 20.55, p: { N: [160, 15], F: [150, 22], tilt: -14, look: -1, smile: 1, swing: 0 }, d: 0.12 },
+    { t: 21.1, p: { smile: 0.9 }, d: 0.3 },
+  ];
+  A.props = [{ a: 16.5, b: 18.14, name: 'paper' }];
+  A.jumps = [{ a: 20.6, b: 20.92, h: 46 }];
+  A.blinks = [17.1, 19.5];
+  companion(W2, A, [{ t: -99, m: 'hidden' }, { t: 16.5, m: 'shoulder', d: 0.01 }, { t: 20.6, m: 'shoulder', d: 0.01, spin: 360 }]);
 }
 
 // ========================================================= W3 · training ==
@@ -1116,6 +1353,12 @@ const W3 = world('w3', 21.72, 26.75, [
   [24.6, -130, -100, 0.93, 0],
   [26.1, -110, -110, 0.92, 0],
 ]);
+const atlas3 = figure(W3, { ground: () => 330, seed: 7 });
+const kids = [
+  figure(W3, { ground: () => 330, scale: 0.8, hat: 'bun', dir: -1, seed: 11 }),
+  figure(W3, { ground: () => 330, scale: 0.86, hat: 'cap', dir: -1, seed: 13 }),
+  figure(W3, { ground: () => 330, scale: 0.78, hat: 'none', glasses: true, dir: -1, seed: 17 }),
+];
 function buildTraining() {
   const g = W3.cam, fl = W3.flat;
   const cx = 0, cy = 0;
@@ -1134,15 +1377,7 @@ function buildTraining() {
     if (k < 3) on(svg('path', { d: `M${cx + 50} ${y} q ${wr / 4} -6 ${wr / 2} 0 t ${wr / 2} 0`, ...ink(1.8, 'rgba(35,62,101,.5)') }, g), 'draw', 22.1 + k * 0.06, 22.5 + k * 0.06);
   }
   const bars = [60, 95, 75, 130];
-  // each bar grows just as the mark lands on it
-  bars.forEach((hgt, k) => on(svg('rect', { x: cx + 70 + k * 46, y: cy + 80 - hgt * 0.7, width: 28, height: hgt * 0.7, fill: k === 3 ? GOLD : 'rgba(35,62,101,.75)' }, g), 'grow', 24.62 + k * 0.2, 24.82 + k * 0.2, { ease: E.back }));
-  // the mark underlines the first line as it reads
-  const hl = svg('path', { d: 'M-282 -94 C-220 -99 -160 -91 -88 -96', ...ink(3.2, OX), pathLength: 1, 'stroke-dasharray': '1 1' }, g);
-  every((t) => {
-    const k = t < 22.9 ? 0 : clamp((training.pos(t)[0] + 282) / 194);
-    hl.style.strokeDashoffset = 1 - k;
-    hl.style.visibility = k > 0.001 ? 'visible' : 'hidden';
-  });
+  bars.forEach((hgt, k) => on(svg('rect', { x: cx + 70 + k * 46, y: cy + 80 - hgt * 0.7, width: 28, height: hgt * 0.7, fill: k === 3 ? GOLD : 'rgba(35,62,101,.75)' }, g), 'pop', 22.9 + k * 0.08, 23.2 + k * 0.08, { ease: E.back }));
   // page flip
   const flip = svg('path', { ...ink(2.4), fill: PAPER }, g);
   const flipLines = svg('path', { ...ink(1.8, 'rgba(35,62,101,.45)') }, g);
@@ -1181,30 +1416,34 @@ function buildTraining() {
   svg('rect', { x: -170, y: -52, width: 340, height: 104, rx: 8, ...ink(5, OX) }, sg);
   svg('rect', { x: -156, y: -38, width: 312, height: 76, rx: 4, ...ink(2, OX) }, sg);
   svg('text', { x: 0, y: 18, 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 500, class: 'mono', fill: OX, 'letter-spacing': 8, text: COPY.training.stamp }, sg);
-  stampAt(sg, 25.5);
+  stampAt(sg, 25.15);
 
   headline({ ...COPY.training, x: 150, y: 150, size: 100, a: 22.6, b: 26.0, subW: 540 });
 }
-// The mark in class: drops onto the page, reads a line, sits on the spine while the
-// page turns, hops across the bars as they grow, and jumps when the stamp lands.
-let training;
-function directMark3() {
-  training = mark(W3, {
-    show: [22.3, 26.8],
-    start: [-260, -560],
-    ks: [[-99, 0.9]],
-    segs: [
-      { a: 22.45, b: 22.95, to: [-280, -133], via: [-320, -420] },
-      { a: 23.02, b: 23.55, to: [-90, -133], e: 'io' },
-      { a: 23.6, b: 23.92, to: [0, -177], via: [-40, -300] },
-      { a: 24.6, b: 24.8, to: [84, 11], via: [50, -150] },
-      { a: 24.84, b: 25.0, to: [130, -13.5], via: [107, -90] },
-      { a: 25.04, b: 25.2, to: [176, 0.5], via: [153, -80] },
-      { a: 25.24, b: 25.4, to: [222, -38], via: [199, -110] },
-      { a: 25.74, b: 26.05, to: [222, -38], hop: 110, e: 'lin' },
-    ],
-    spins: [{ a: 25.74, b: 26.05, deg: -360 }],
-    bursts: [25.4],
+function directTraining() {
+  const A = atlas3;
+  A.moves = [{ t: 21.7, x: -560 }, { t: 22.9, x: -560 }, { t: 23.5, x: -500 }];
+  const point = (t) => ({ NT: (J) => { const d = norm([150 - J.shN[0], 30 - J.shN[1]]); return [J.shN[0] + d[0] * 80, J.shN[1] + d[1] * 80 + Math.sin(t * 16) * 5 * P(t, 23.6, 23.8) * (1 - P(t, 24.4, 24.6))]; }, tilt: -8, smile: 0.8, swing: 0 });
+  A.poses = [
+    { t: -99, p: { smile: 0.7 } },
+    { t: 23.4, p: point, d: 0.35 },
+    { t: 24.9, p: { smile: 0.8 }, d: 0.3 },
+    { t: 25.3, p: { N: [120, -20], F: [110, -10], tilt: -12, look: -1, smile: 0.2, swing: 0 }, d: 0.08 },
+    { t: 25.75, p: { smile: 1 }, d: 0.35 },
+  ];
+  A.props = [{ a: 23.35, b: 25.3, name: 'pointer' }];
+  A.jumps = [{ a: 25.33, b: 25.6, h: 28 }];
+  companion(W3, A, [{ t: -99, m: 'shoulder' }]);
+  const xs = [440, 555, 670];
+  kids.forEach((K, i) => {
+    K.moves = [{ t: 0, x: xs[i] }];
+    K.dirKeys = [{ t: -99, dir: -1 }];
+    const look = { tilt: -14, look: -0.8, smile: 0.6 };
+    K.poses = [{ t: -99, p: (t) => ({ ...look, tilt: -14 + Math.sin(t * 1.7 + i) * 4 }) }];
+    if (i === 1) K.poses.push({ t: 23.95, p: (t) => ({ ...look, N: [165, 15 + Math.sin(t * 15) * 22], smile: 1, swing: 0 }), d: 0.25 }, { t: 24.8, p: look, d: 0.3 });
+    K.poses.push({ t: 25.33 + i * 0.04, p: { N: [110, -30], F: [100, -20], tilt: -18, look: -1, smile: 0.1, swing: 0 }, d: 0.08 }, { t: 25.9, p: { ...look, smile: 1 }, d: 0.4 });
+    K.jumps = [{ a: 25.34 + i * 0.05, b: 25.62 + i * 0.05, h: 34 }];
+    K.hits = [{ t: 23.0 + i * 0.4, a: 0.05 }];
   });
 }
 
@@ -1225,6 +1464,7 @@ function buildWhip() {
 
 // ===================================================== W4 · bridge + outro ==
 const W4 = world('w4', 26.0, 99, [[26.0, 0, 0, 1.0], [30.2, 0, 0, 1.0], [38, 0, 0, 1.025]], 0.7);
+const atlas4 = figure(W4, { ground: () => 465, scale: 0.95, seed: 9 });
 function buildBridge() {
   const g = W4.cam, fl = W4.flat;
   const CY = -90, R = 210;
@@ -1280,30 +1520,30 @@ function buildBridge() {
 }
 function buildOutro() {
   const g = W4.cam, fl = W4.flat;
-  // the mark flies into the overlap, then rises and becomes the logo
-  mark(W4, {
-    show: [28.5, 31.7],
-    fade: [31.15, 31.5],
-    start: [-980, -620],
-    ks: [[-99, 0.9], [30.2, 0.9], [31.2, 2.5]],
-    segs: [
-      { a: 28.55, b: 29.3, to: [0, -90], via: [-460, -640] },
-      { a: 30.2, b: 31.2, to: [0, -215], e: 'io' },
-    ],
-    spins: [{ a: 30.2, b: 31.2, deg: 360 }],
-    bursts: [29.3],
+  // the star born in the lens rises and becomes the logo
+  const star = svg('g', {}, g);
+  svg('path', { d: atlasStar(0, 0, 22), fill: GOLD, ...ink(2.2), fill: GOLD }, star);
+  every((t) => {
+    if (t < 29.35 || t > 31.8) { star.style.display = 'none'; return; }
+    star.style.display = '';
+    const pop = P(t, 29.35, 29.7, E.back);
+    const k = P(t, 30.35, 31.35, E.io);
+    const y = lerp(-90, -215, k), sc = lerp(0.9 * pop, 3.3, k), rot = t * 40 + 360 * k;
+    star.setAttribute('transform', `translate(0 ${f1(y)}) rotate(${f1(rot)}) scale(${sc.toFixed(3)})`);
+    star.setAttribute('opacity', f1(1 - P(t, 31.3, 31.65)));
   });
   // concentric pointed arches (the doorway of the Atlas mark)
   [0, 34, 68, 102].forEach((d, i) => {
     const x0 = -330 + d, x1 = 330 - d, top = -450 + d, base = 540;
     const dp = `M${x0} ${base} V${top + 300 - d * 0.3} C${x0} ${top + 130} ${x0 + 150 - d * 0.4} ${top + 50} 0 ${top} C${x1 - 150 + d * 0.4} ${top + 50} ${x1} ${top + 130} ${x1} ${top + 300 - d * 0.3} V${base}`;
-    on(svg('path', { d: dp, ...ink(1.6, i === 0 ? 'rgba(181,140,79,.8)' : 'rgba(35,62,101,.22)') }, g), 'draw', 30.15 + i * 0.1, 31.1 + i * 0.1);
+    on(svg('path', { d: dp, ...ink(1.6, i === 0 ? 'rgba(181,140,79,.8)' : 'rgba(35,62,101,.22)') }, g), 'draw', 30.3 + i * 0.12, 31.7 + i * 0.12);
   });
+  on(svg('line', { x1: -700, y1: 465, x2: 300, y2: 465, ...ink(2) }, g), 'draw', 30.6, 31.3);
 
   const logo = html('img', '', TYPE);
   logo.src = '../public/assets/logo/logo_atlas.png';
   Object.assign(logo.style, { position: 'absolute', left: '885px', top: '250px', width: '150px', height: '150px', objectFit: 'contain' });
-  on(logo, 'pop', 30.95, 31.45, { ease: E.back });
+  on(logo, 'pop', 31.1, 31.65, { ease: E.back });
 
   const name = html('h1', 'display', TYPE);
   Object.assign(name.style, { left: 0, width: '1920px', top: '440px', textAlign: 'center', fontSize: '176px' });
@@ -1329,6 +1569,22 @@ function buildOutro() {
   svg('path', { d: starPath(0, -14, 11, 26), fill: OX }, sg);
   svg('text', { y: 38, 'text-anchor': 'middle', 'font-size': 30, class: 'note', fill: OX, text: '2006' }, sg);
   stampAt(sg, 33.0);
+
+  // Atlas walks into the doorway, startles at the seal, looks up at the mark, waves
+  const A = atlas4;
+  A.show = [30.6, 99];
+  A.reveal = [30.6, 31.15];
+  A.moves = [{ t: 30.75, x: -760 }, { t: 32.7, x: 0 }];
+  const wave = (t) => ({ N: [158, 25 + Math.sin((t - 34.5) * 13) * 28], tilt: -6, smile: 1, swing: 0 });
+  A.poses = [
+    { t: -99, p: { smile: 0.8 } },
+    { t: 33.2, p: { N: [115, -20], F: [105, -10], tilt: -10, look: -1, smile: 0.2, swing: 0 }, d: 0.08 },
+    { t: 33.6, p: { tilt: -32, look: -1, smile: 0.9 }, d: 0.45 },
+    { t: 34.45, p: wave, d: 0.3 },
+    { t: 35.9, p: { tilt: -4, smile: 1 }, d: 0.45 },
+  ];
+  A.jumps = [{ a: 33.22, b: 33.48, h: 30 }];
+  A.blinks = [34.2, 36.6];
 }
 
 // ============================================================== render ==
@@ -1355,7 +1611,6 @@ function render(t) {
   }
   // push into the answer bubble, then the training world grows out of the paper
   W3.div.style.opacity = P(t, 21.72, 21.9).toFixed(3);
-  W2.div.style.opacity = (1 - P(t, 21.58, 21.78, E.io)).toFixed(3);
 
   for (const it of items) {
     const { el, kind } = it;
@@ -1383,10 +1638,6 @@ function render(t) {
         el.style.opacity = 1 - outp;
         el.style.transform = `translateY(${f1(-outp * 30)}px)`;
         break;
-      case 'grow':
-        el.style.transform = `scaleY(${Math.max(0, inp).toFixed(4)})`;
-        el.style.opacity = inp > 0 ? 1 : 0;
-        break;
       case 'pop':
         el.style.transform = `scale(${Math.max(0, inp).toFixed(4)})`;
         el.style.opacity = (inp > 0 ? 1 : 0) * (1 - outp);
@@ -1407,13 +1658,13 @@ function render(t) {
 buildIntro();
 buildMep();
 buildData();
-directMark1();
+directAtlas1();
 cameraW1();
 buildIris();
 buildAi();
-directMark2();
+directAtlas2();
 buildTraining();
-directMark3();
+directTraining();
 buildWhip();
 buildBridge();
 buildOutro();

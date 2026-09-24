@@ -50,12 +50,9 @@ export const Team = () => {
 
   return (
     <div>
-      <Reveal className="grid gap-8 lg:grid-cols-12 lg:items-end">
-        <div className="lg:col-span-6">
-          <Eyebrow n="04">{t('team.label')}</Eyebrow>
-          <h2 className="display mt-6 text-[clamp(2.6rem,5.4vw,4.8rem)] text-navy">{t('team.title')}</h2>
-        </div>
-        <p className="lede lg:col-span-4 lg:col-start-8">{t('team.sub')}</p>
+      <Reveal>
+        <Eyebrow n="04">{t('team.label')}</Eyebrow>
+        <h2 className="display mt-6 text-[clamp(2.6rem,5.4vw,4.8rem)] text-navy">{t('team.title')}</h2>
       </Reveal>
 
       <div className="mt-16 grid gap-20 lg:grid-cols-3 lg:gap-12">
