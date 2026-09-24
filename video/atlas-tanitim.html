@@ -1,0 +1,914 @@
+<!doctype html>
+<!--
+  Atlas Proje — 30 saniyelik tanıtım filmi (1920×1080).
+
+  Önizleme:  node render-video.mjs --serve   → yazdığı adresi tarayıcıda aç
+             (Boşluk: durdur/oynat · ← →: 1 sn geri/ileri · 0: başa dön)
+  Video:     node render-video.mjs           → atlas-tanitim.mp4
+
+  Metinler aşağıdaki COPY nesnesinde; zamanlamalar her sahnenin içinde,
+  sahne başlangıcına göre saniye cinsinden yazılı.
+-->
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlas Proje — Tanıtım Filmi</title>
+<link rel="stylesheet" href="fonts/fonts.css" />
+<style>
+  :root {
+    --navy: #233e65;
+    --gold: #b58c4f;
+    --gold-light: #d6b684;
+    --oxblood: #912930;
+    --sand: #ddd1bc;
+    --paper: #fbf9f5;
+    --ink: #1b2537;
+    --ink-soft: #4d566a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #1b2537; overflow: hidden; }
+  #stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--paper);
+    transform-origin: 0 0;
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    color: var(--ink);
+  }
+  .layer { position: absolute; inset: 0; }
+  svg.layer, .scene svg { overflow: visible; }
+
+  /* paper: soft blotches + fine grain, both multiplied into the sheet */
+  #blotch, #grain { position: absolute; inset: -40px; pointer-events: none; mix-blend-mode: multiply; }
+  #blotch {
+    opacity: 0.28;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='.004 .006' numOctaves='3' seed='11'/><feColorMatrix values='0 0 0 0 .87  0 0 0 0 .82  0 0 0 0 .72  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23b)'/></svg>");
+  }
+  #grain {
+    opacity: 0.34;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .14  0 0 0 0 .2  0 0 0 0 .3  0 0 0 .42 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  #vignette { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 260px rgba(35, 62, 101, 0.06); }
+
+  .eyebrow {
+    position: absolute;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 21px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .eyebrow b { color: var(--gold); font-weight: 500; }
+  .eyebrow i { display: inline-block; width: 56px; height: 1px; margin: 0 18px; vertical-align: middle; background: rgba(35, 62, 101, 0.35); }
+
+  .display {
+    position: absolute;
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 380;
+    font-size: 112px;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    color: var(--navy);
+    font-variation-settings: 'SOFT' 60, 'WONK' 0;
+    --u: 0;
+  }
+  .display em {
+    font-style: italic;
+    font-weight: 340;
+    color: var(--gold);
+    font-variation-settings: 'SOFT' 100, 'WONK' 1;
+    padding-bottom: 0.05em;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'><path d='M3 9.5C38 4.5 76 11 118 6.8S182 4.6 197 8.2' fill='none' stroke='%23912930' stroke-width='2.6' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: calc(var(--u) * 100%) 0.15em;
+  }
+  /* one masked line of a headline */
+  .line { display: block; overflow: hidden; padding-bottom: 0.1em; margin-bottom: -0.1em; }
+  .line > span { display: inline-block; will-change: transform; }
+
+  .sub {
+    position: absolute;
+    margin: 0;
+    width: 660px;
+    font-size: 33px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+  .note { font-family: 'Fraunces', serif; font-style: italic; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .serif { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="blotch"></div>
+  <div id="scenes" class="layer"></div>
+  <svg id="chrome" class="layer" viewBox="0 0 1920 1080"></svg>
+  <div id="grain"></div>
+  <div id="vignette"></div>
+</div>
+
+<!-- hand-drawn wobble; the seed changes 8× a second so lines "boil" like pencil animation -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="boil" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="1" result="n" />
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <filter id="boil-strong" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="1" result="n" />
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+</svg>
+
+<script>
+// ============================================================== copy (TR) ==
+const COPY = {
+  intro: {
+    eyebrow: '<b>N° 00</b><i></i>Adana · Kur. 2006<i></i>37°00′N 35°19′E',
+    title: ['Mühendislik', 'yenilikle', '<em>buluşuyor.</em>'],
+    note: 'Levha 01 — sekiz köşeli yıldız, pergel ve cetvelle.',
+  },
+  mep: {
+    eyebrow: '<b>N° 01</b><i></i>Mekanik & MEP',
+    title: ['Mekanik & MEP', '<em>mühendisliği</em>'],
+    sub: 'HVAC, yangın ve sıhhi tesisat tasarımı. 2006’dan beri sahada.',
+  },
+  data: {
+    eyebrow: '<b>N° 02</b><i></i>Veri Bilimi',
+    title: ['Veri bilimi &', '<em>makine öğrenmesi</em>'],
+    sub: 'Ham veriyi tahmine, tahmini karara dönüştürüyoruz.',
+  },
+  ai: {
+    eyebrow: '<b>N° 03</b><i></i>Yapay Zeka',
+    title: ['Yapay zeka &', '<em>LLM ajanları</em>'],
+    sub: 'Şirket verinizle konuşan, işi otomatikleştiren özel ajanlar.',
+  },
+  training: {
+    eyebrow: '<b>N° 04</b><i></i>Kurumsal Eğitim',
+    title: ['Dijital dönüşüm', '& <em>eğitimler</em>'],
+    sub: 'Ekipler için veri okuryazarlığı, yapay zeka ve otomasyon eğitimleri.',
+    stamp: 'YAKINDA',
+  },
+  bridge: {
+    eyebrow: '<b>N° 05</b><i></i>Farkımız',
+    title: ['Fiziksel güven,', 'dijital <em>zeka.</em>'],
+    sub: 'Mühendislik ve yazılım, aynı masada.',
+  },
+  outro: {
+    name: 'Atlas <em>Proje</em>',
+    tagline: 'Mühendislik & Teknoloji · Adana',
+    url: 'atlasproje.github.io',
+    seal: 'ATLAS PROJE · MÜHENDİSLİK & TEKNOLOJİ · ADANA · ',
+  },
+};
+
+// ================================================================ helpers ==
+const DURATION = 30;
+const NS = 'http://www.w3.org/2000/svg';
+const E = {
+  lin: (x) => x,
+  io: (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2),
+  out: (x) => 1 - Math.pow(1 - x, 4),
+  back: (x) => 1 + 2.4 * Math.pow(x - 1, 3) + 1.4 * Math.pow(x - 1, 2),
+  inQ: (x) => x * x,
+};
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b, e = E.lin) => (b <= a ? (t >= a ? 1 : 0) : e(clamp((t - a) / (b - a))));
+
+function svg(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'text') e.textContent = v;
+    else e.setAttribute(k, v);
+  }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function html(tag, cls, parent, inner) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (inner != null) e.innerHTML = inner;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const pts = (list) => list.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ');
+const pathOf = (list, close = false) => 'M' + list.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L') + (close ? ' Z' : '');
+// deterministic "random"
+const rnd = (i) => { const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+
+// ================================================================ timeline ==
+// Every animated thing registers here with times relative to its scene start.
+const items = [];
+const scenes = [];
+let S = null; // scene being built
+
+function beginScene(name, start, end, { outLead = 0.75 } = {}) {
+  const root = html('div', 'layer scene', document.getElementById('scenes'));
+  root.dataset.name = name;
+  S = { name, start, end, root, out: [end - start - outLead, end - start - 0.05] };
+  scenes.push(S);
+  return S;
+}
+// kinds: draw (stroke), fade, rise (headline line), pop (scale in), stamp, fn (custom)
+function on(el, kind, a, b, opt = {}) {
+  const base = S ? S.start : 0;
+  const out = opt.out === null ? null : opt.out || (S ? S.out : null);
+  const it = { el, kind, a: base + a, b: base + b, c: out ? base + out[0] : Infinity, d: out ? base + out[1] : Infinity, ...opt };
+  if (kind === 'draw') {
+    if (!el.hasAttribute('pathLength')) el.setAttribute('pathLength', '1');
+    el.style.strokeDasharray = '1 1';
+  }
+  if (kind === 'drawText') el.style.strokeDasharray = `${opt.len} ${opt.len}`;
+  if (kind === 'pop' && el instanceof SVGElement) { el.style.transformBox = 'fill-box'; el.style.transformOrigin = 'center'; }
+  items.push(it);
+  return el;
+}
+const fnAt = (fn) => items.push({ kind: 'fn', fn, a: 0, b: 0, c: Infinity, d: Infinity });
+
+// stroke presets
+const ink = (w = 2, color = 'var(--navy)', extra = {}) => ({ fill: 'none', stroke: color, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...extra });
+
+// ---------------------------------------------------------- scene chrome ----
+// Eyebrow, headline, sub and big outline number, laid out the same way in every service scene.
+function sceneText(copy, { x = 150, eyebrowY = 150, titleY = 540, subY = 830, t0 = 0.2, number } = {}) {
+  const eb = html('div', 'eyebrow', S.root, copy.eyebrow);
+  Object.assign(eb.style, { left: x + 'px', top: eyebrowY + 'px' });
+  on(eb, 'fade', t0, t0 + 0.6);
+
+  if (number) {
+    const s = svg('svg', { width: 700, height: 340, viewBox: '0 0 700 340' }, S.root);
+    Object.assign(s.style, { position: 'absolute', left: x - 14 + 'px', top: eyebrowY + 20 + 'px' });
+    const tx = svg('text', { x: 0, y: 300, 'font-size': 330, class: 'serif', text: number, ...ink(1.6, 'var(--gold)') }, s);
+    tx.style.fontWeight = 300;
+    tx.style.fontVariationSettings = "'SOFT' 100";
+    on(tx, 'drawText', t0 + 0.2, t0 + 1.8, { len: 1600 });
+  }
+
+  const h = html('h1', 'display', S.root);
+  Object.assign(h.style, { left: x + 'px', top: titleY + 'px' });
+  copy.title.forEach((line, i) => {
+    const l = html('span', 'line', h);
+    const inner = html('span', '', l, line);
+    on(l, 'rise', t0 + 0.35 + i * 0.14, t0 + 1.25 + i * 0.14, { inner });
+  });
+  const s0 = S.start;
+  fnAt((t) => h.style.setProperty('--u', P(t, s0 + t0 + 1.3, s0 + t0 + 2.1, E.io)));
+
+  if (copy.sub) {
+    const p = html('p', 'sub', S.root, copy.sub);
+    Object.assign(p.style, { left: x + 'px', top: subY + 'px' });
+    on(p, 'fade', t0 + 1.0, t0 + 1.7);
+  }
+  return h;
+}
+
+// Illustration canvas on the right: 960×840, boiling lines, slow camera drift.
+function canvas({ left = 950, top = 130, w = 960, h = 840, scale = 0.92, filter = 'boil' } = {}) {
+  const s = svg('svg', { width: w * scale, height: h * scale, viewBox: `0 0 ${w} ${h}` }, S.root);
+  Object.assign(s.style, { position: 'absolute', left: left + 'px', top: top + 'px', transformOrigin: '50% 50%' });
+  const g = svg('g', { filter: `url(#${filter})` }, s);
+  const sc = S;
+  fnAt((t) => { s.style.transform = `scale(${1 + 0.035 * P(t, sc.start, sc.end, E.lin)})`; });
+  return { svg: s, g };
+}
+
+// Rubber stamp: slams down, settles, a little crooked.
+function stampAt(el, a, rot) {
+  el.style.transformBox = 'fill-box';
+  el.style.transformOrigin = 'center';
+  on(el, 'stamp', a, a + 0.22, { rot });
+  // the page jolts on impact
+  const t0 = S.start + a + 0.2;
+  fnAt((t) => {
+    const k = clamp((t - t0) / 0.25);
+    const j = k > 0 && k < 1 ? Math.sin(k * Math.PI * 3) * (1 - k) * 5 : 0;
+    const scenesEl = document.getElementById('scenes');
+    if (t >= t0 && t <= t0 + 0.25) scenesEl.style.transform = `translate(${j}px, ${-j * 0.6}px)`;
+  });
+}
+
+// ========================================================= persistent chrome ==
+function buildChrome() {
+  const c = document.getElementById('chrome');
+  const g = svg('g', {}, c);
+  on(g, 'fade', 0.1, 0.9, { out: null });
+  // crop marks
+  const cm = [[70, 70, -1, -1], [1850, 70, 1, -1], [70, 1010, -1, 1], [1850, 1010, 1, 1]];
+  for (const [x, y, sx, sy] of cm) {
+    svg('path', { d: `M${x + sx * 14} ${y} h${sx * 40} M${x} ${y + sy * 14} v${sy * 40}`, ...ink(1.2, 'rgba(35,62,101,.5)') }, g);
+  }
+  // registration target
+  const rg = svg('g', { transform: 'translate(960 42)' }, g);
+  svg('circle', { r: 11, ...ink(1.1, 'rgba(35,62,101,.5)') }, rg);
+  svg('path', { d: 'M-20 0 H20 M0 -20 V20', ...ink(1.1, 'rgba(35,62,101,.5)') }, rg);
+  // ruler, bottom left
+  const rl = svg('g', { transform: 'translate(150 1022)' }, g);
+  for (let i = 0; i <= 80; i++) {
+    const hgt = i % 10 === 0 ? 14 : i % 5 === 0 ? 9 : 5;
+    svg('line', { x1: i * 5, y1: 0, x2: i * 5, y2: -hgt, ...ink(1, 'rgba(35,62,101,.45)') }, rl);
+    if (i % 10 === 0) svg('text', { x: i * 5, y: 18, 'font-size': 12, 'text-anchor': 'middle', class: 'mono', fill: 'rgba(35,62,101,.55)', text: i / 10 }, rl);
+  }
+  svg('text', { x: 412, y: 4, 'font-size': 12, class: 'mono', fill: 'rgba(35,62,101,.55)', text: 'cm' }, rl);
+  // progress: one small star per scene
+  const pr = svg('g', { transform: 'translate(1590 150)' }, g);
+  const stars = [];
+  for (let i = 0; i < 7; i++) stars.push(svg('path', { d: starPath(0, 0, 9, 16), transform: `translate(${i * 36} 0)`, ...ink(1.2, 'var(--gold)') }, pr));
+  // title block, bottom right
+  const tb = svg('g', { transform: 'translate(1290 978)' }, g);
+  const cols = [0, 190, 350, 460, 560];
+  svg('rect', { x: 0, y: 0, width: 560, height: 60, ...ink(1, 'rgba(35,62,101,.45)') }, tb);
+  for (const x of cols.slice(1, -1)) svg('line', { x1: x, y1: 0, x2: x, y2: 60, ...ink(1, 'rgba(35,62,101,.45)') }, tb);
+  const cell = (x, k, v) => {
+    svg('text', { x: x + 12, y: 22, 'font-size': 11, class: 'mono', fill: 'rgba(35,62,101,.55)', 'letter-spacing': 1.5, text: k }, tb);
+    return svg('text', { x: x + 12, y: 45, 'font-size': 15, class: 'mono', fill: 'var(--navy)', 'letter-spacing': 1.2, text: v }, tb);
+  };
+  cell(0, 'PROJE', 'ATLAS PROJE');
+  const sheet = cell(190, 'LEVHA', '01 / 07');
+  cell(350, 'ÖLÇEK', '1 : 1');
+  cell(460, 'ÇİZEN', 'İÜ·AÜ·MÜ');
+
+  fnAt((t) => {
+    let idx = 0;
+    scenes.forEach((s, i) => { if (t >= s.start + 0.3) idx = i; });
+    sheet.textContent = `0${idx + 1} / 07`;
+    stars.forEach((st, i) => {
+      st.setAttribute('fill', i <= idx ? 'var(--gold)' : 'none');
+      st.setAttribute('transform', `translate(${i * 36} 0) scale(${i === idx ? 1.35 : 1})`);
+    });
+  });
+}
+
+function starPath(cx, cy, inner, outer, points = 8) {
+  const list = [];
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 ? inner : outer;
+    const a = (Math.PI / points) * i - Math.PI / 2;
+    list.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return pathOf(list, true);
+}
+// eight-point star made of two squares (the Atlas mark)
+function atlasStar(cx, cy, R) {
+  const inner = (R * Math.cos(Math.PI / 4)) / Math.cos(Math.PI / 8);
+  const list = [];
+  for (let i = 0; i < 16; i++) {
+    const r = i % 2 ? inner : R;
+    const a = (i * 22.5 * Math.PI) / 180;
+    list.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return pathOf(list, true);
+}
+const arcPath = (cx, cy, r, from, to) => {
+  const p = (d) => [cx + r * Math.cos((d * Math.PI) / 180), cy + r * Math.sin((d * Math.PI) / 180)];
+  const [x1, y1] = p(from), [x2, y2] = p(to);
+  const large = Math.abs(to - from) > 180 ? 1 : 0;
+  return `M${x1.toFixed(1)} ${y1.toFixed(1)} A${r} ${r} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+};
+
+// ============================================================ 1 · intro ==
+function sceneIntro() {
+  beginScene('intro', 0, 5.2);
+  const c = COPY.intro;
+  const eb = html('div', 'eyebrow', S.root, c.eyebrow);
+  Object.assign(eb.style, { left: '150px', top: '150px' });
+  on(eb, 'fade', 0.3, 1.0);
+
+  const h = html('h1', 'display', S.root);
+  Object.assign(h.style, { left: '150px', top: '290px', fontSize: '140px' });
+  c.title.forEach((line, i) => {
+    const l = html('span', 'line', h);
+    on(l, 'rise', 0.9 + i * 0.14, 1.8 + i * 0.14, { inner: html('span', '', l, line) });
+  });
+  fnAt((t) => h.style.setProperty('--u', P(t, 2.3, 3.1, E.io)));
+
+  const note = html('p', 'note', S.root, c.note);
+  Object.assign(note.style, { position: 'absolute', left: '150px', top: '800px', margin: 0, fontSize: '30px', color: 'var(--ink-soft)' });
+  on(note, 'fade', 3.0, 3.6);
+
+  // the star construction
+  const { g } = canvas({ left: 900, top: 110, scale: 1 });
+  const C = [500, 420], R = 250, cx = C[0], cy = C[1];
+  const pol = (r, d) => [cx + r * Math.cos((d * Math.PI) / 180), cy + r * Math.sin((d * Math.PI) / 180)];
+  on(svg('circle', { cx, cy, r: 362, ...ink(1.2, 'rgba(35,62,101,.3)', { 'stroke-dasharray': '2 9' }) }, g), 'fade', 0.2, 1.0);
+  on(svg('line', { x1: cx - 400, y1: cy, x2: cx + 400, y2: cy, ...ink(1, 'rgba(35,62,101,.4)') }, g), 'draw', 0.2, 1.2);
+  on(svg('line', { x1: cx, y1: cy - 400, x2: cx, y2: cy + 400, ...ink(1, 'rgba(35,62,101,.4)') }, g), 'draw', 0.3, 1.3);
+  on(svg('circle', { cx, cy, r: 290, ...ink(1.3, 'rgba(35,62,101,.6)') }, g), 'draw', 0.5, 1.7);
+  for (let i = 0; i < 24; i++) {
+    const [x1, y1] = pol(290, i * 15), [x2, y2] = pol(i % 3 ? 300 : 312, i * 15);
+    on(svg('line', { x1, y1, x2, y2, ...ink(1, 'rgba(35,62,101,.5)') }, g), 'fade', 1.0 + i * 0.02, 1.4 + i * 0.02);
+  }
+  const A = [cx - R, cy], B = [cx + R, cy], compass = R * Math.SQRT2;
+  [[A, -58, -32], [B, -148, -122], [A, 32, 58], [B, 122, 148]].forEach(([p, f, to], i) =>
+    on(svg('path', { d: arcPath(p[0], p[1], compass, f, to), ...ink(1.4, 'var(--oxblood)') }, g), 'draw', 0.9 + i * 0.15, 1.6 + i * 0.15));
+  const sq = (off) => pathOf([0, 1, 2, 3].map((k) => pol(R, off + k * 90)), true);
+  on(svg('path', { d: sq(0), ...ink(1.2, 'rgba(35,62,101,.55)') }, g), 'draw', 1.2, 2.1);
+  on(svg('path', { d: sq(45), ...ink(1.2, 'rgba(35,62,101,.55)') }, g), 'draw', 1.35, 2.25);
+  on(svg('path', { d: atlasStar(cx, cy, R), ...ink(2.4) }, g), 'draw', 1.6, 2.7);
+  on(svg('path', { d: atlasStar(cx, cy, 148), fill: 'var(--gold)', opacity: 0.92 }, g), 'fade', 2.5, 3.1, { max: 0.92 });
+  on(svg('path', { d: atlasStar(cx, cy, 148), ...ink(1.6) }, g), 'draw', 2.1, 2.9);
+  on(svg('circle', { cx, cy, r: 42, ...ink(1.6) }, g), 'draw', 2.6, 3.1);
+  on(svg('path', { d: arcPath(cx, cy, 95, 0, 45), ...ink(1.5, 'var(--oxblood)') }, g), 'draw', 2.6, 3.1);
+  const [px, py] = pol(R, 45);
+  on(svg('line', { x1: cx, y1: cy, x2: px, y2: py, ...ink(1.2) }, g), 'draw', 2.6, 3.0);
+  // Ø dimension
+  const dy = cy + 345;
+  on(svg('path', { d: `M${A[0]} ${cy + 12} V${dy + 14} M${B[0]} ${cy + 12} V${dy + 14}`, ...ink(1, 'rgba(35,62,101,.5)') }, g), 'draw', 2.5, 3.1);
+  on(svg('path', { d: `M${A[0]} ${dy} H${B[0]} M${A[0]} ${dy} l12 -5 M${A[0]} ${dy} l12 5 M${B[0]} ${dy} l-12 -5 M${B[0]} ${dy} l-12 5`, ...ink(1.2) }, g), 'draw', 2.8, 3.4);
+  const lab = svg('g', {}, S.root.lastElementChild);
+  svg('rect', { x: cx - 52, y: dy - 14, width: 104, height: 28, fill: 'var(--paper)' }, lab);
+  svg('text', { x: cx, y: dy + 6, 'text-anchor': 'middle', 'font-size': 17, 'letter-spacing': 1.5, class: 'mono', fill: 'var(--navy)', text: 'Ø 500' }, lab);
+  svg('text', { x: cx + 108, y: cy - 16, 'font-size': 17, class: 'mono', fill: 'var(--oxblood)', text: '45°' }, lab);
+  svg('text', { x: A[0] - 30, y: cy - 12, 'font-size': 28, class: 'note', fill: 'var(--navy)', text: 'A' }, lab);
+  svg('text', { x: B[0] + 12, y: cy - 12, 'font-size': 28, class: 'note', fill: 'var(--navy)', text: 'B' }, lab);
+  svg('text', { x: cx + 14, y: cy - R - 12, 'font-size': 28, class: 'note', fill: 'var(--navy)', text: 'C' }, lab);
+  on(lab, 'fade', 3.0, 3.5);
+}
+
+// ============================================================== 2 · MEP ==
+function sceneMep() {
+  beginScene('mep', 5.0, 10.0);
+  sceneText(COPY.mep, { number: '01' });
+  const { svg: root, g } = canvas();
+  const s = 66, ox = 240, oy = 560;
+  const iso = (x, y, z = 0) => [ox + (x - y) * 0.866 * s, oy + (x + y) * 0.5 * s - z * s];
+
+  // faint isometric grid
+  const grid = svg('g', {}, g);
+  for (let i = -2; i <= 8; i++) {
+    svg('path', { d: pathOf([iso(i, -6), iso(i, 4)]), ...ink(1, 'rgba(35,62,101,.1)') }, grid);
+    svg('path', { d: pathOf([iso(-2, i - 6), iso(8, i - 6)]), ...ink(1, 'rgba(35,62,101,.1)') }, grid);
+  }
+  on(grid, 'fade', 0.2, 0.9);
+
+  // pipe = two parallel lines along a polyline (mitred corners)
+  function pipe(list, w, a, b) {
+    const n = list.length;
+    const off = (k) => list.map((p, i) => {
+      const prev = list[Math.max(0, i - 1)], next = list[Math.min(n - 1, i + 1)];
+      const d1 = norm([p[0] - prev[0], p[1] - prev[1]]), d2 = norm([next[0] - p[0], next[1] - p[1]]);
+      const n1 = i === 0 ? perp(d2) : perp(d1), n2 = i === n - 1 ? perp(d1) : perp(d2);
+      const m = norm([n1[0] + n2[0], n1[1] + n2[1]]);
+      const len = (k * w) / Math.max(0.3, m[0] * n1[0] + m[1] * n1[1]);
+      return [p[0] + m[0] * len, p[1] + m[1] * len];
+    });
+    on(svg('path', { d: pathOf(off(1)), ...ink(2.2) }, g), 'draw', a, b);
+    on(svg('path', { d: pathOf(off(-1)), ...ink(2.2) }, g), 'draw', a + 0.08, b + 0.08);
+    const flow = svg('path', { d: pathOf(list), ...ink(1.6, 'var(--gold)', { 'stroke-dasharray': '4 16' }) }, g);
+    on(flow, 'fade', b - 0.2, b + 0.3);
+    fnAt((t) => (flow.style.strokeDashoffset = -t * 48));
+  }
+  const norm = (v) => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+  const perp = (v) => [-v[1], v[0]];
+
+  const inlet = iso(-1.4, 0), A = iso(0, 0), Bp = iso(5, 0), Cp = iso(5, 0, 3.2), Dp = iso(5, -3.4, 3.2);
+  pipe([inlet, A, Bp, Cp, Dp], 8, 0.5, 1.9);
+  pipe([iso(2.2, 0), iso(2.2, 2.6), iso(2.2, 2.6, -0.1)], 6, 1.4, 2.2);
+
+  // pump
+  const pump = svg('g', {}, g);
+  svg('circle', { cx: A[0], cy: A[1], r: 34, ...ink(2.2), fill: 'var(--paper)' }, pump);
+  svg('path', { d: `M${A[0] - 14} ${A[1] - 16} L${A[0] + 20} ${A[1]} L${A[0] - 14} ${A[1] + 16} Z`, ...ink(2) }, pump);
+  on(pump, 'pop', 1.0, 1.5, { ease: E.back });
+
+  // valve on the main run
+  const V = iso(3.6, 0), d = norm([0.866, 0.5]), nn = perp(d), L = 22, hh = 17;
+  const q = (a, b) => [V[0] + d[0] * a + nn[0] * b, V[1] + d[1] * a + nn[1] * b];
+  const valve = svg('g', {}, g);
+  svg('path', { d: pathOf([q(-L, hh), q(L, -hh), q(L, hh), q(-L, -hh)], true), ...ink(2.2, 'var(--oxblood)'), fill: 'var(--paper)' }, valve);
+  svg('path', { d: `M${V[0]} ${V[1]} V${V[1] - 42} M${V[0] - 16} ${V[1] - 42} H${V[0] + 16}`, ...ink(2.2, 'var(--oxblood)') }, valve);
+  on(valve, 'pop', 1.6, 2.1, { ease: E.back });
+
+  // sprinkler at the end of the branch
+  const SP = iso(2.2, 2.6);
+  const spr = svg('g', {}, g);
+  svg('circle', { cx: SP[0], cy: SP[1] + 16, r: 10, ...ink(2) }, spr);
+  for (let k = 0; k < 5; k++) {
+    const an = Math.PI * (0.15 + k * 0.175);
+    svg('line', { x1: SP[0] + Math.cos(an) * 18, y1: SP[1] + 16 + Math.sin(an) * 18, x2: SP[0] + Math.cos(an) * 34, y2: SP[1] + 16 + Math.sin(an) * 34, ...ink(1.6, 'var(--oxblood)') }, spr);
+  }
+  on(spr, 'fade', 2.1, 2.6);
+
+  // fan-coil box at the end of the upper run
+  const bx = (x, y, z) => iso(4.3 + x, -4.8 + y, 2.6 + z);
+  const box = [
+    [bx(0, 0, 0), bx(1.4, 0, 0), bx(1.4, 1.4, 0), bx(0, 1.4, 0)],
+    [bx(0, 0, 1.2), bx(1.4, 0, 1.2), bx(1.4, 1.4, 1.2), bx(0, 1.4, 1.2)],
+  ];
+  const boxPath = pathOf(box[1], true) + pathOf([box[1][2], box[0][2], box[0][3], box[1][3]]).replace('M', ' M') + pathOf([box[0][2], box[0][1], box[1][1]]).replace('M', ' M');
+  on(svg('path', { d: boxPath, ...ink(2.2), fill: 'var(--paper)' }, g), 'draw', 1.8, 2.6);
+  const grille = svg('g', {}, g);
+  for (let k = 1; k < 5; k++) svg('path', { d: pathOf([bx(0.15, 1.4, k * 0.22), bx(1.25, 1.4, k * 0.22)]), ...ink(1.2, 'rgba(35,62,101,.6)') }, grille);
+  on(grille, 'fade', 2.4, 2.8);
+
+  // dimension along the main run
+  const dn = [-0.5 * 70, 0.866 * 70];
+  const d1 = [A[0] + dn[0], A[1] + dn[1]], d2 = [Bp[0] + dn[0], Bp[1] + dn[1]];
+  on(svg('path', { d: `M${A[0] - 6} ${A[1] + 10} L${d1[0] - 8} ${d1[1] + 14} M${Bp[0] - 6} ${Bp[1] + 10} L${d2[0] - 8} ${d2[1] + 14}`, ...ink(1, 'rgba(35,62,101,.5)') }, g), 'draw', 2.2, 2.7);
+  on(svg('path', { d: pathOf([d1, d2]), ...ink(1.3) }, g), 'draw', 2.4, 3.0);
+  const labels = svg('g', {}, root);
+  const mid = [(d1[0] + d2[0]) / 2, (d1[1] + d2[1]) / 2];
+  svg('text', { x: mid[0], y: mid[1] + 30, 'font-size': 18, class: 'mono', fill: 'var(--navy)', 'text-anchor': 'middle', transform: `rotate(30 ${mid[0]} ${mid[1] + 30})`, text: '5.000' }, labels);
+  // elevation marker on the riser
+  svg('path', { d: `M${Cp[0] + 30} ${Cp[1] - 4} l-10 -14 h20 Z M${Cp[0] + 20} ${Cp[1] - 18} h70`, ...ink(1.4) }, labels);
+  svg('text', { x: Cp[0] + 44, y: Cp[1] - 26, 'font-size': 18, class: 'mono', fill: 'var(--navy)', text: '+3.20' }, labels);
+  // DN label with leader
+  const DNp = iso(5, -1.8, 3.2);
+  svg('path', { d: `M${DNp[0]} ${DNp[1] - 10} L${DNp[0] + 40} ${DNp[1] - 80} H${DNp[0] + 120}`, ...ink(1.2) }, labels);
+  svg('text', { x: DNp[0] + 46, y: DNp[1] - 88, 'font-size': 20, class: 'mono', fill: 'var(--navy)', text: 'DN 50' }, labels);
+  svg('text', { x: iso(1, 0)[0] - 20, y: iso(1, 0)[1] - 34, 'font-size': 18, class: 'mono', fill: 'var(--gold)', transform: `rotate(30 ${iso(1, 0)[0] - 20} ${iso(1, 0)[1] - 34})`, text: 'Q = 2,4 L/s →' }, labels);
+  on(labels, 'fade', 2.8, 3.3);
+
+  // handwritten note pointing at the valve
+  const nt = svg('g', { filter: 'url(#boil)' }, root);
+  svg('text', { x: V[0] + 40, y: V[1] + 150, 'font-size': 38, class: 'note', fill: 'var(--oxblood)', text: 'vana' }, nt);
+  const arrow = svg('path', { d: `M${V[0] + 36} ${V[1] + 124} C ${V[0] + 10} ${V[1] + 110}, ${V[0] + 4} ${V[1] + 80}, ${V[0] + 4} ${V[1] + 34} M${V[0] + 4} ${V[1] + 34} l-9 14 M${V[0] + 4} ${V[1] + 34} l10 13`, ...ink(2, 'var(--oxblood)') }, nt);
+  on(arrow, 'draw', 3.0, 3.6);
+  on(nt.firstChild, 'fade', 3.2, 3.6);
+}
+
+// ============================================================= 3 · data ==
+function sceneData() {
+  beginScene('data', 9.8, 14.4);
+  sceneText(COPY.data, { number: '02' });
+  const { svg: root, g } = canvas();
+  const O = [120, 700], X1 = 900, Y1 = 110;
+  const f = (x) => 690 - 470 / (1 + Math.exp(-(x - 480) / 85));
+
+  const grid = svg('g', {}, g);
+  for (let x = O[0] + 100; x < X1; x += 100) svg('line', { x1: x, y1: Y1 + 20, x2: x, y2: O[1], ...ink(1, 'rgba(35,62,101,.1)') }, grid);
+  for (let y = O[1] - 100; y > Y1; y -= 100) svg('line', { x1: O[0], y1: y, x2: X1 - 20, y2: y, ...ink(1, 'rgba(35,62,101,.1)') }, grid);
+  on(grid, 'fade', 0.2, 0.8);
+  on(svg('path', { d: `M${O[0]} ${Y1} V${O[1]} H${X1}`, ...ink(2.4) }, g), 'draw', 0.3, 1.1);
+  on(svg('path', { d: `M${O[0] - 8} ${Y1 + 14} L${O[0]} ${Y1} L${O[0] + 8} ${Y1 + 14} M${X1 - 14} ${O[1] - 8} L${X1} ${O[1]} L${X1 - 14} ${O[1] + 8}`, ...ink(2.2) }, g), 'draw', 1.0, 1.3);
+  const ax = svg('g', {}, root);
+  svg('text', { x: X1 - 4, y: O[1] + 40, 'font-size': 18, class: 'mono', fill: 'var(--ink-soft)', 'text-anchor': 'end', text: 'zaman →' }, ax);
+  svg('text', { x: O[0] - 18, y: Y1 - 18, 'font-size': 18, class: 'mono', fill: 'var(--ink-soft)', text: 'değer' }, ax);
+  for (let k = 1; k <= 6; k++) svg('text', { x: O[0] + k * 100, y: O[1] + 28, 'font-size': 14, class: 'mono', fill: 'rgba(35,62,101,.5)', 'text-anchor': 'middle', text: `Q${((k - 1) % 4) + 1}` }, ax);
+  on(ax, 'fade', 0.8, 1.2);
+
+  // observations
+  for (let i = 0; i < 26; i++) {
+    const x = 160 + i * 22;
+    const y = f(x) + (rnd(i) - 0.5) * 70;
+    on(svg('circle', { cx: x, cy: y, r: 6.5, fill: 'var(--navy)' }, g), 'pop', 0.7 + i * 0.05, 1.0 + i * 0.05, { ease: E.back });
+  }
+  // fitted curve
+  const fit = [];
+  for (let x = 150; x <= 720; x += 10) fit.push([x, f(x)]);
+  on(svg('path', { d: pathOf(fit), ...ink(3.2, 'var(--oxblood)') }, g), 'draw', 1.9, 2.8);
+  // forecast + hatched uncertainty band
+  const fc = [], up = [], lo = [];
+  for (let x = 720; x <= 880; x += 10) {
+    const w = (x - 720) * 0.45;
+    fc.push([x, f(x)]); up.push([x, f(x) - w]); lo.push([x, f(x) + w]);
+  }
+  const band = svg('clipPath', { id: 'band' }, root);
+  svg('path', { d: pathOf([...up, ...lo.reverse()], true) }, band);
+  const hatch = svg('g', { 'clip-path': 'url(#band)' }, g);
+  for (let k = 0; k < 30; k++) {
+    const x = 700 + k * 10;
+    on(svg('line', { x1: x, y1: 120, x2: x - 200, y2: 520, ...ink(1.2, 'rgba(35,62,101,.45)') }, hatch), 'draw', 2.7 + k * 0.02, 3.1 + k * 0.02);
+  }
+  on(svg('path', { d: pathOf(fc), ...ink(3, 'var(--navy)', { 'stroke-dasharray': '2 10' }) }, g), 'fade', 2.7, 3.1);
+  // red hand circle + note
+  const end = fc[fc.length - 1];
+  const loop = [];
+  for (let k = 0; k <= 60; k++) {
+    const a = (k / 60) * Math.PI * 2.15 - 2.2;
+    const r = 58 + Math.sin(k * 0.7) * 5;
+    loop.push([end[0] - 8 + Math.cos(a) * r * 1.25, end[1] + 4 + Math.sin(a) * r * 0.9]);
+  }
+  on(svg('path', { d: pathOf(loop), ...ink(2.6, 'var(--oxblood)') }, g), 'draw', 3.1, 3.7);
+  const note = svg('text', { x: end[0] - 60, y: end[1] + 128, 'font-size': 40, class: 'note', fill: 'var(--oxblood)', text: 'tahmin', filter: 'url(#boil)' }, root);
+  on(note, 'fade', 3.4, 3.8);
+  const eq = svg('text', { x: 300, y: 250, 'font-size': 26, class: 'note', fill: 'var(--navy)', text: 'y = f(t) + ε' }, root);
+  on(eq, 'fade', 2.5, 3.0);
+}
+
+// =============================================================== 4 · AI ==
+function sceneAi() {
+  beginScene('ai', 14.2, 18.8);
+  sceneText(COPY.ai, { number: '03' });
+  const { svg: root, g } = canvas();
+
+  // documents (company data)
+  const doc = svg('g', {}, g);
+  for (let k = 2; k >= 0; k--) {
+    const x = 70 + k * 16, y = 300 - k * 16;
+    svg('path', { d: `M${x} ${y} h92 l28 28 v132 h-120 Z M${x + 92} ${y} v28 h28`, ...ink(2), fill: 'var(--paper)' }, doc);
+  }
+  for (let k = 0; k < 5; k++) {
+    const y = 350 + k * 18, w = 70 + rnd(k + 3) * 20;
+    svg('path', { d: `M86 ${y} q ${w / 4} -4 ${w / 2} 0 t ${w / 2} 0`, ...ink(1.6, 'rgba(35,62,101,.55)') }, doc);
+  }
+  on(doc, 'pop', 0.4, 0.9, { ease: E.back });
+  const dl = svg('text', { x: 130, y: 500, 'font-size': 18, class: 'mono', fill: 'var(--ink-soft)', 'text-anchor': 'middle', 'letter-spacing': 2, text: 'VERİ' }, root);
+  on(dl, 'fade', 0.8, 1.2);
+
+  const nodes = { rag: [390, 250, 44, 'RAG'], api: [390, 580, 44, 'API'], llm: [590, 415, 62, 'LLM'] };
+  const bubble = [820, 415];
+  const edges = [
+    [[236, 320], [nodes.rag[0] - 44, nodes.rag[1]]],
+    [[236, 400], [nodes.api[0] - 44, nodes.api[1]]],
+    [[nodes.rag[0] + 38, nodes.rag[1] + 22], [nodes.llm[0] - 48, nodes.llm[1] - 38]],
+    [[nodes.api[0] + 38, nodes.api[1] - 22], [nodes.llm[0] - 48, nodes.llm[1] + 38]],
+    [[nodes.llm[0] + 62, nodes.llm[1]], [bubble[0] - 80, bubble[1]]],
+  ];
+  const edgeEls = edges.map(([a, b], i) => {
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2 - 30 + i * 8;
+    const p = svg('path', { d: `M${a[0]} ${a[1]} Q ${mx} ${my} ${b[0]} ${b[1]}`, ...ink(2, 'rgba(35,62,101,.7)') }, g);
+    on(p, 'draw', 0.9 + i * 0.18, 1.5 + i * 0.18);
+    return p;
+  });
+  // satellite nodes around the LLM
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * Math.PI * 2 + 0.4;
+    const x = nodes.llm[0] + Math.cos(a) * 120, y = nodes.llm[1] + Math.sin(a) * 105;
+    on(svg('line', { x1: nodes.llm[0] + Math.cos(a) * 64, y1: nodes.llm[1] + Math.sin(a) * 64, x2: x, y2: y, ...ink(1.2, 'rgba(35,62,101,.3)') }, g), 'draw', 1.8 + k * 0.05, 2.2 + k * 0.05);
+    on(svg('circle', { cx: x, cy: y, r: 6, fill: 'var(--gold)' }, g), 'pop', 2.1 + k * 0.05, 2.4 + k * 0.05, { ease: E.back });
+  }
+  for (const [x, y, r, label] of Object.values(nodes)) {
+    const n = svg('g', {}, g);
+    svg('circle', { cx: x, cy: y, r, ...ink(2.4), fill: 'var(--paper)' }, n);
+    on(n, 'pop', label === 'LLM' ? 1.5 : 1.1, label === 'LLM' ? 2.0 : 1.6, { ease: E.back });
+    const tl = svg('text', { x, y: y + 7, 'font-size': label === 'LLM' ? 24 : 20, class: 'mono', fill: 'var(--navy)', 'text-anchor': 'middle', 'letter-spacing': 2, text: label }, root);
+    on(tl, 'fade', label === 'LLM' ? 1.8 : 1.4, label === 'LLM' ? 2.2 : 1.8);
+  }
+  // answer bubble
+  const bb = svg('g', {}, g);
+  svg('path', { d: `M${bubble[0] - 80} ${bubble[1] - 70} h170 q20 0 20 20 v100 q0 20 -20 20 h-120 l-30 34 v-34 h-20 q-20 0 -20 -20 v-100 q0 -20 20 -20 Z`, ...ink(2.4), fill: 'var(--paper)' }, bb);
+  on(bb, 'pop', 2.2, 2.7, { ease: E.back });
+  for (let k = 0; k < 3; k++) {
+    const w = [120, 96, 70][k];
+    on(svg('path', { d: `M${bubble[0] - 60} ${bubble[1] - 26 + k * 30} q ${w / 4} -5 ${w / 2} 0 t ${w / 2} 0`, ...ink(2, 'rgba(35,62,101,.6)') }, g), 'draw', 2.6 + k * 0.15, 3.0 + k * 0.15);
+  }
+  on(svg('path', { d: starPath(bubble[0] + 74, bubble[1] - 64, 7, 16), fill: 'var(--oxblood)' }, g), 'pop', 3.1, 3.5, { ease: E.back });
+
+  // data pulses travelling along the edges
+  const routes = [[0, 2, 4], [1, 3, 4]];
+  routes.forEach((route, ri) => {
+    route.forEach((ei, step) => {
+      for (let rep = 0; rep < 3; rep++) {
+        const dot = svg('circle', { r: 7, fill: 'var(--oxblood)', opacity: 0 }, g);
+        const a = S.start + 2.3 + rep * 0.7 + ri * 0.3 + step * 0.35;
+        const path = edgeEls[ei];
+        fnAt((t) => {
+          const k = (t - a) / 0.35;
+          if (k < 0 || k > 1 || t > S_end('ai') - 0.6) { dot.setAttribute('opacity', 0); return; }
+          const pt = path.getPointAtLength(path.getTotalLength() * E.io(k));
+          dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
+          dot.setAttribute('opacity', Math.sin(k * Math.PI) * 0.95);
+        });
+      }
+    });
+  });
+}
+const S_end = (name) => scenes.find((s) => s.name === name).end;
+
+// ========================================================= 5 · training ==
+function sceneTraining() {
+  beginScene('training', 18.6, 23.4);
+  sceneText(COPY.training, { number: '04' });
+  const { svg: root, g } = canvas();
+  const cx = 470, cy = 520;
+  // open book
+  const left = `M${cx} ${cy - 150} C ${cx - 80} ${cy - 196}, ${cx - 220} ${cy - 196}, ${cx - 320} ${cy - 160} V ${cy + 110} C ${cx - 220} ${cy + 76}, ${cx - 80} ${cy + 80}, ${cx} ${cy + 124} Z`;
+  const right = `M${cx} ${cy - 150} C ${cx + 80} ${cy - 196}, ${cx + 220} ${cy - 196}, ${cx + 320} ${cy - 160} V ${cy + 110} C ${cx + 220} ${cy + 76}, ${cx + 80} ${cy + 80}, ${cx} ${cy + 124} Z`;
+  on(svg('path', { d: left, ...ink(2.6), fill: 'var(--paper)' }, g), 'draw', 0.4, 1.3);
+  on(svg('path', { d: right, ...ink(2.6), fill: 'var(--paper)' }, g), 'draw', 0.55, 1.45);
+  on(svg('path', { d: `M${cx - 330} ${cy + 124} C ${cx - 220} ${cy + 96}, ${cx - 80} ${cy + 100}, ${cx} ${cy + 146} C ${cx + 80} ${cy + 100}, ${cx + 220} ${cy + 96}, ${cx + 330} ${cy + 124}`, ...ink(2.2) }, g), 'draw', 1.1, 1.7);
+  for (let k = 0; k < 7; k++) {
+    const y = cy - 110 + k * 30;
+    const wl = 200 - (k === 6 ? 80 : rnd(k) * 40), wr = 200 - (k === 3 ? 90 : rnd(k + 9) * 40);
+    on(svg('path', { d: `M${cx - 280} ${y + 4} q ${wl / 4} -6 ${wl / 2} 0 t ${wl / 2} 0`, ...ink(1.8, 'rgba(35,62,101,.5)') }, g), 'draw', 1.2 + k * 0.08, 1.6 + k * 0.08);
+    if (k < 5) on(svg('path', { d: `M${cx + 50} ${y} q ${wr / 4} -6 ${wr / 2} 0 t ${wr / 2} 0`, ...ink(1.8, 'rgba(35,62,101,.5)') }, g), 'draw', 1.3 + k * 0.08, 1.7 + k * 0.08);
+  }
+  // a little bar chart on the right page
+  [60, 95, 75, 130].forEach((hgt, k) => on(svg('rect', { x: cx + 70 + k * 44, y: cy + 60 - hgt * 0.6, width: 26, height: hgt * 0.6, fill: k === 3 ? 'var(--gold)' : 'rgba(35,62,101,.75)' }, g), 'pop', 1.8 + k * 0.08, 2.1 + k * 0.08, { ease: E.back }));
+  // ideas rising out of the book
+  for (let k = 0; k < 3; k++) {
+    const st = svg('path', { d: starPath(0, 0, 8 + k * 2, 18 + k * 4), fill: k === 1 ? 'var(--oxblood)' : 'var(--gold)' }, g);
+    const x0 = cx - 90 + k * 90;
+    const sc = S;
+    fnAt((t) => {
+      const lt = t - sc.start - 1.6 - k * 0.2;
+      const k1 = clamp(lt / 2.2);
+      st.setAttribute('transform', `translate(${x0 + Math.sin(lt * 2 + k) * 10} ${cy - 210 - k1 * 120 - k * 20}) rotate(${lt * 30})`);
+      st.setAttribute('opacity', lt < 0 ? 0 : Math.min(1, lt * 3) * (1 - P(t, sc.start + sc.out[0], sc.start + sc.out[1])));
+    });
+  }
+  // rays
+  for (let k = 0; k < 5; k++) {
+    const a = (-150 + k * 30) * (Math.PI / 180);
+    on(svg('line', { x1: cx + Math.cos(a) * 250, y1: cy - 200 + Math.sin(a) * 110, x2: cx + Math.cos(a) * 300, y2: cy - 200 + Math.sin(a) * 140, ...ink(2.2, 'var(--oxblood)') }, g), 'draw', 2.0 + k * 0.06, 2.3 + k * 0.06);
+  }
+  // pencil
+  const penAt = svg('g', { transform: `translate(${cx + 170} ${cy + 190}) rotate(-18)` }, g);
+  const pen = svg('g', {}, penAt);
+  svg('path', { d: 'M0 0 h230 v26 h-230 Z M230 0 l40 13 l-40 13 M258 9 l12 4 l-12 4', ...ink(2.2), fill: 'var(--paper)' }, pen);
+  svg('rect', { x: 0, y: 0, width: 34, height: 26, fill: 'var(--oxblood)' }, pen);
+  on(pen, 'pop', 1.4, 1.9, { ease: E.back });
+
+  // the stamp
+  const stamp = svg('g', { transform: `translate(${cx + 180} ${cy - 150}) rotate(-9)`, filter: 'url(#boil-strong)' }, root);
+  const sg = svg('g', { style: 'mix-blend-mode:multiply' }, stamp);
+  svg('rect', { x: -170, y: -52, width: 340, height: 104, rx: 8, ...ink(5, 'var(--oxblood)') }, sg);
+  svg('rect', { x: -156, y: -38, width: 312, height: 76, rx: 4, ...ink(2, 'var(--oxblood)') }, sg);
+  svg('text', { x: 0, y: 18, 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 500, class: 'mono', fill: 'var(--oxblood)', 'letter-spacing': 8, text: COPY.training.stamp }, sg);
+  stampAt(sg, 2.6, 0);
+}
+
+// =========================================================== 6 · bridge ==
+function sceneBridge() {
+  beginScene('bridge', 23.2, 26.6);
+  sceneText(COPY.bridge, { titleY: 470, subY: 760 });
+  const { svg: root, g } = canvas();
+  const c1 = [350, 420], c2 = [610, 420], r = 210;
+  // compass radius strokes, then the circles
+  on(svg('line', { x1: c1[0], y1: c1[1], x2: c1[0] - r * 0.7, y2: c1[1] - r * 0.7, ...ink(1.2, 'var(--oxblood)') }, g), 'draw', 0.2, 0.6);
+  on(svg('circle', { cx: c1[0], cy: c1[1], r, ...ink(2.6) }, g), 'draw', 0.4, 1.3);
+  on(svg('line', { x1: c2[0], y1: c2[1], x2: c2[0] + r * 0.7, y2: c2[1] - r * 0.7, ...ink(1.2, 'var(--oxblood)') }, g), 'draw', 0.6, 1.0);
+  on(svg('circle', { cx: c2[0], cy: c2[1], r, ...ink(2.6) }, g), 'draw', 0.8, 1.7);
+  const half = (c2[0] - c1[0]) / 2, hy = Math.sqrt(r * r - half * half), mx = c1[0] + half;
+  const lens = `M${mx} ${c1[1] - hy} A${r} ${r} 0 0 1 ${mx} ${c1[1] + hy} A${r} ${r} 0 0 1 ${mx} ${c1[1] - hy} Z`;
+  on(svg('path', { d: lens, fill: 'var(--gold)' }, g), 'fade', 1.6, 2.1, { max: 0.9 });
+  // hatching inside the lens
+  const clip = svg('clipPath', { id: 'lens' }, root);
+  svg('path', { d: lens }, clip);
+  const hat = svg('g', { 'clip-path': 'url(#lens)' }, g);
+  for (let k = 0; k < 16; k++) on(svg('line', { x1: mx - 140 + k * 18, y1: c1[1] - 220, x2: mx - 340 + k * 18, y2: c1[1] + 220, ...ink(1.2, 'rgba(35,62,101,.35)') }, hat), 'draw', 1.9 + k * 0.02, 2.3 + k * 0.02);
+  on(svg('path', { d: `M${c1[0]} ${c1[1] + r + 40} H${c2[0]} M${c1[0]} ${c1[1] + r + 30} v20 M${c2[0]} ${c1[1] + r + 30} v20`, ...ink(1.2) }, g), 'draw', 1.7, 2.2);
+  const lab = svg('g', {}, root);
+  svg('text', { x: c1[0] - 100, y: c1[1] + 20, 'font-size': 64, class: 'note', fill: 'var(--navy)', 'text-anchor': 'middle', text: 'Ø' }, lab);
+  svg('text', { x: c2[0] + 100, y: c1[1] + 16, 'font-size': 46, class: 'mono', fill: 'var(--navy)', 'text-anchor': 'middle', text: '</>' }, lab);
+  svg('path', { d: starPath(mx, c1[1], 8, 20), fill: 'var(--oxblood)' }, lab);
+  svg('text', { x: c1[0] - 60, y: c1[1] - r - 26, 'font-size': 18, class: 'mono', fill: 'var(--ink-soft)', 'letter-spacing': 3, 'text-anchor': 'middle', text: 'FİZİKSEL' }, lab);
+  svg('text', { x: c2[0] + 60, y: c1[1] - r - 26, 'font-size': 18, class: 'mono', fill: 'var(--ink-soft)', 'letter-spacing': 3, 'text-anchor': 'middle', text: 'DİJİTAL' }, lab);
+  svg('text', { x: mx, y: c1[1] + r + 76, 'font-size': 17, class: 'mono', fill: 'var(--navy)', 'text-anchor': 'middle', text: 'd = 260' }, lab);
+  on(lab, 'fade', 1.8, 2.3);
+}
+
+// ============================================================ 7 · outro ==
+function sceneOutro() {
+  beginScene('outro', 26.4, DURATION + 1, { outLead: 0 });
+  S.out = null;
+  const root = svg('svg', { width: 1920, height: 1080, viewBox: '0 0 1920 1080', class: 'layer' }, S.root);
+  const g = svg('g', { filter: 'url(#boil)' }, root);
+  // concentric pointed arches (the doorway of the Atlas mark)
+  [0, 34, 68, 102].forEach((d, i) => {
+    const x0 = 960 - 330 + d, x1 = 960 + 330 - d, top = 90 + d, base = 1080;
+    const dp = `M${x0} ${base} V${top + 300 - d * 0.3} C${x0} ${top + 130} ${x0 + 150 - d * 0.4} ${top + 50} 960 ${top} C${x1 - 150 + d * 0.4} ${top + 50} ${x1} ${top + 130} ${x1} ${top + 300 - d * 0.3} V${base}`;
+    on(svg('path', { d: dp, ...ink(1.6, i === 0 ? 'rgba(181,140,79,.8)' : 'rgba(35,62,101,.22)') }, g), 'draw', 0.1 + i * 0.12, 1.4 + i * 0.12, { out: null });
+  });
+
+  const logo = html('img', '', S.root);
+  logo.src = '../public/assets/logo/logo_atlas.png';
+  Object.assign(logo.style, { position: 'absolute', left: '885px', top: '250px', width: '150px', height: '150px', objectFit: 'contain' });
+  on(logo, 'pop', 0.5, 1.1, { ease: E.back, out: null });
+
+  const name = html('h1', 'display', S.root);
+  Object.assign(name.style, { left: 0, width: '1920px', top: '440px', textAlign: 'center', fontSize: '176px' });
+  const l = html('span', 'line', name);
+  on(l, 'rise', 0.8, 1.7, { inner: html('span', '', l, COPY.outro.name), out: null });
+  fnAt((t) => name.style.setProperty('--u', P(t, S_start('outro') + 1.6, S_start('outro') + 2.3, E.io)));
+
+  const tag = html('div', 'eyebrow', S.root, COPY.outro.tagline);
+  Object.assign(tag.style, { left: 0, width: '1920px', top: '680px', textAlign: 'center', fontSize: '24px' });
+  on(tag, 'fade', 1.3, 1.9, { out: null });
+  const url = html('div', 'mono', S.root, COPY.outro.url);
+  Object.assign(url.style, { position: 'absolute', left: 0, width: '1920px', top: '740px', textAlign: 'center', fontSize: '30px', color: 'var(--navy)', letterSpacing: '0.04em' });
+  on(url, 'fade', 1.6, 2.2, { out: null });
+
+  // round rubber seal
+  const seal = svg('g', { transform: 'translate(1480 780) rotate(-14)', filter: 'url(#boil-strong)' }, root);
+  const sg = svg('g', { style: 'mix-blend-mode:multiply' }, seal);
+  svg('circle', { r: 124, ...ink(4.5, 'var(--oxblood)') }, sg);
+  svg('circle', { r: 114, ...ink(1.6, 'var(--oxblood)') }, sg);
+  svg('circle', { r: 74, ...ink(1.6, 'var(--oxblood)') }, sg);
+  svg('path', { id: 'seal-ring', d: 'M0 0 m-94 0 a94 94 0 1 1 188 0 a94 94 0 1 1 -188 0', fill: 'none' }, sg);
+  const tx = svg('text', { 'font-size': 16, 'font-weight': 500, class: 'mono', fill: 'var(--oxblood)' }, sg);
+  svg('textPath', { href: '#seal-ring', textLength: 585, lengthAdjust: 'spacing', text: COPY.outro.seal }, tx);
+  svg('path', { d: starPath(0, -14, 11, 26), fill: 'var(--oxblood)' }, sg);
+  svg('text', { y: 38, 'text-anchor': 'middle', 'font-size': 30, class: 'note', fill: 'var(--oxblood)', text: '2006' }, sg);
+  stampAt(sg, 2.2, 0);
+}
+const S_start = (name) => scenes.find((s) => s.name === name).start;
+
+// ============================================================== render ==
+const turb = [...document.querySelectorAll('feTurbulence')];
+const grain = document.getElementById('grain');
+
+function render(t) {
+  // pencil boil: new noise 8× a second
+  const step = Math.floor(t * 8);
+  turb.forEach((f, i) => f.setAttribute('seed', String(((step * 7 + i * 13) % 97) + 1)));
+  grain.style.backgroundPosition = `${(step * 53) % 220}px ${(step * 97) % 220}px`;
+  document.getElementById('scenes').style.transform = '';
+
+  for (const s of scenes) s.root.style.display = t >= s.start - 0.05 && t <= s.end + 0.05 ? '' : 'none';
+
+  for (const it of items) {
+    const { el, kind } = it;
+    if (kind === 'fn') { it.fn(t); continue; }
+    const inp = P(t, it.a, it.b, it.ease || (kind === 'draw' || kind === 'drawText' ? E.io : kind === 'rise' ? E.out : E.out));
+    const outp = P(t, it.c, it.d, E.io);
+    switch (kind) {
+      case 'draw':
+        el.style.strokeDashoffset = outp > 0 ? -outp : 1 - inp;
+        el.style.visibility = inp <= 0.001 || outp >= 0.999 ? 'hidden' : 'visible';
+        break;
+      case 'drawText':
+        el.style.strokeDashoffset = outp > 0 ? -it.len * outp : it.len * (1 - inp);
+        el.style.visibility = inp <= 0.001 || outp >= 0.999 ? 'hidden' : 'visible';
+        break;
+      case 'fade':
+        el.style.opacity = inp * (1 - outp) * (it.max ?? 1);
+        break;
+      case 'rise':
+        it.inner.style.transform = `translateY(${(1 - inp) * 110}%)`;
+        el.style.opacity = 1 - outp;
+        el.style.transform = `translateY(${-outp * 24}px)`;
+        break;
+      case 'pop':
+        el.style.transform = `scale(${Math.max(0, inp)})`;
+        el.style.opacity = (inp > 0 ? 1 : 0) * (1 - outp);
+        break;
+      case 'stamp': {
+        const k = clamp((t - it.a) / (it.b - it.a));
+        const sc = 1 + (1 - E.inQ(k)) * 1.6;
+        el.style.transform = `scale(${sc}) rotate(${(1 - k) * 10}deg)`;
+        el.style.opacity = (t < it.a ? 0 : Math.min(1, k * 2.5) * 0.9) * (1 - outp);
+        break;
+      }
+    }
+  }
+}
+
+// ================================================================= boot ==
+buildChrome();
+sceneIntro();
+sceneMep();
+sceneData();
+sceneAi();
+sceneTraining();
+sceneBridge();
+sceneOutro();
+
+const stage = document.getElementById('stage');
+let recording = false;
+let playing = true;
+let clock = 0;
+let last = null;
+
+function fit() {
+  if (recording) { stage.style.transform = ''; return; }
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+  stage.style.transform = `translate(${(innerWidth - 1920 * k) / 2}px, ${(innerHeight - 1080 * k) / 2}px) scale(${k})`;
+}
+addEventListener('resize', fit);
+fit();
+
+function loop(now) {
+  if (recording) return;
+  if (last != null && playing) clock = (clock + (now - last) / 1000) % (DURATION + 1);
+  last = now;
+  render(Math.min(clock, DURATION));
+  requestAnimationFrame(loop);
+}
+addEventListener('keydown', (e) => {
+  if (e.code === 'Space') playing = !playing;
+  if (e.code === 'ArrowRight') clock = Math.min(DURATION, clock + 1);
+  if (e.code === 'ArrowLeft') clock = Math.max(0, clock - 1);
+  if (e.key === '0') clock = 0;
+});
+
+const ready = Promise.all([
+  document.fonts.load("380 128px 'Fraunces'"),
+  document.fonts.load("italic 340 128px 'Fraunces'"),
+  document.fonts.load("400 32px 'Instrument Sans'"),
+  document.fonts.load("500 20px 'IBM Plex Mono'"),
+  document.fonts.load("400 20px 'IBM Plex Mono'"),
+  new Promise((r) => (document.querySelector('img').complete ? r() : document.querySelector('img').addEventListener('load', r, { once: true }))),
+]).then(() => document.fonts.ready).then(() => true);
+
+window.__film = {
+  duration: DURATION,
+  ready,
+  record() { recording = true; fit(); },
+  render,
+};
+ready.then(() => requestAnimationFrame(loop));
+</script>
+</body>
+</html>
