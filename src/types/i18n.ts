@@ -271,6 +271,31 @@ export interface TranslationDict {
   'cnt.loc_title': string;
   'cnt.loc_sub': string;
   'cnt.map_btn': string;
+
+  // Editorial redesign
+  'hero.plate': string;
+  'hero.log_label': string;
+  'manifesto.quote': string;
+  'manifesto.attrib': string;
+  'svc.details': string;
+  'svc.view_all': string;
+  'svc.scope_h': string;
+  'svc.feat_h': string;
+  'svc.badge_ai': string;
+  'svc.badge_ds': string;
+  'svc.badge_mep': string;
+  'techneos.scope_detail': string;
+  'techneos.tagline': string;
+  'techneos.route': string;
+  'team.focus': string;
+  'reg.official': string;
+  'about.registry_label': string;
+  'nav.menu': string;
+  'nav.close': string;
+  'footer.top': string;
+  'footer.sheet': string;
+  'footer.drawn': string;
+  'footer.scale': string;
 }
 
 export type Language = 'tr' | 'en';
@@ -307,11 +332,11 @@ export const translations: Record<Language, TranslationDict> = {
 
     // Call to Action
     'cta.label': 'Başlamaya Hazır mısınız?',
-    'cta.title': 'Birlikte Bir Şeyler İnşa Edelim',
+    'cta.title': 'Birlikte bir şeyler <em>inşa edelim.</em>',
     'cta.sub': 'Bir teknik çizime, yazılım çözümüne veya her ikisini birleştiren bir projeye ihtiyaç duyuyor olun — sizden haber almaktan memnuniyet duyarız.',
 
     'hero.eyebrow': 'Adana, Türkiye &mdash; Kur. 2006',
-    'hero.title': 'Mühendislik<br />Yenilikle <span class="text-sky-500">Buluşuyor</span>',
+    'hero.title': 'Mühendislik<br />yenilikle <em>buluşuyor.</em>',
     'hero.desc': 'Hassas makine mühendisliğini modern yazılım geliştirme, veri bilimi ve yapay zeka mühendisliğiyle buluşturuyoruz — geleneksel firmaların sunamayacağı entegre çözümler üretiyoruz.',
     'hero.btn_services': 'Hizmetleri Keşfet',
     'hero.btn_contact': 'Bize Ulaşın',
@@ -333,7 +358,7 @@ export const translations: Record<Language, TranslationDict> = {
     'stats.core_disc': 'Temel Disiplin',
 
     'techneos.label': 'Ortaklık Odağı',
-    'techneos.title': 'Techneos (İtalya) Teknolojik İş Ortaklığı',
+    'techneos.title': 'Techneos (İtalya) ile <em>teknoloji</em> ortaklığı',
     'techneos.desc': 'Atlas Proje, İtalya merkezli yapay zeka lideri Techneos firmasının Türkiye\'deki özel teknik iş ortağı ve yüklenicisidir. Bu sınır ötesi iş birliği kapsamında, İtalya ve Avrupa genelindeki yüksek değerli operasyonlar için uzaktan veri bilimi süreçleri, makine öğrenmesi hatları ve ileri düzey yapay zeka mühendisliği desteği sağlıyoruz. Geleneksel mühendislik disiplinlerindeki köklü güvenimizi, dünya standartlarında yapay zeka çözümleriyle harmanlayarak uluslararası alanda değer üretiyoruz.',
     'techneos.badge': 'Mühendislik ve Yapay Zekada Küresel Güç Birliği',
     'techneos.scope': 'İş Birliği Kapsamı',
@@ -343,28 +368,28 @@ export const translations: Record<Language, TranslationDict> = {
     'idx.svc_title': 'Hizmetlerimiz',
     'idx.svc_sub': 'Plandan koda — mühendislik, veri bilimi ve yapay zeka alanında bütünsel çözümler sunuyoruz.',
 
-    'svc.ai_title': '1. AI Mühendisliği & LLM Ajan İş Akışları',
+    'svc.ai_title': 'AI Mühendisliği & LLM Ajan İş Akışları',
     'svc.ai_desc': 'İş süreçlerinizi otomatikleştiren, araç entegrasyonuna sahip ve şirket içi veri kaynaklarınızla konuşan özel yapay zeka ajanları geliştiriyoruz.',
     'svc.ai_bullet1': 'Özel LLM Ajenleri ve Chatbot Geliştirme',
     'svc.ai_bullet2': 'RAG (Artırılmış Geri Getirmeli Nesil) Sistemleri',
     'svc.ai_bullet3': 'Araç ve API Entegrasyonlu Ajan İş Akışları',
     'svc.ai_bullet4': 'Yapay Zeka Destekli Süreç Otomasyonu',
 
-    'svc.ds_title': '2. Veri Bilimi & Makine Öğrenmesi',
+    'svc.ds_title': 'Veri Bilimi & Makine Öğrenmesi',
     'svc.ds_desc': 'Ham verilerinizi eyleme dönüştürülebilir içgörülere dönüştürüyor; üretim kalitesinde tahminsel modeller ve güvenilir veri boru hatları inşa ediyoruz.',
     'svc.ds_bullet1': 'Tahminsel Modelleme ve Analiz',
     'svc.ds_bullet2': 'Uçtan Uca Veri Boru Hatları (ETL/ELT)',
     'svc.ds_bullet3': 'Anomali Tespiti ve Zaman Serisi Analizi',
     'svc.ds_bullet4': 'İş Zekası ve KPI Panoları',
 
-    'svc.mep_title': '3. Mekanik & MEP Mühendisliği',
+    'svc.mep_title': 'Mekanik & MEP Mühendisliği',
     'svc.mep_desc': '18 yılı aşkın süredir Adana ve çevre illerde kamu ve özel sektöre sunduğumuz, geleneksel müşavir güvenine dayanan mekanik tesisat ve yapısal tasarım hizmetleri.',
     'svc.mep_bullet1': 'HVAC, Yangın ve Sıhhi Tesisat Tasarımları',
     'svc.mep_bullet2': 'CAD & Detaylı Mekanik Çizimler',
     'svc.mep_bullet3': 'Yapısal Hesaplar ve Yük Analizleri',
     'svc.mep_bullet4': 'Mühendislik Danışmanlığı ve İhale Hazırlığı',
 
-    'svc.training_title': '4. Dijital Dönüşüm & Kurumsal Eğitimler',
+    'svc.training_title': 'Dijital Dönüşüm & Kurumsal Eğitimler',
     'svc.training_desc': 'Şirketlerin yeni nesil teknolojilere uyum sağlaması için veri bilimi, veri analitiği ve temel yapay zeka okuryazarlığı alanında uygulamalı eğitim programları.',
     'svc.training_bullet1': 'Veri Okuryazarlığı ve Analitiğe Giriş',
     'svc.training_bullet2': 'Ekipler İçin Yapay Zeka & LLM Kullanımı',
@@ -373,7 +398,7 @@ export const translations: Record<Language, TranslationDict> = {
     'svc.training_upcoming': 'YAKINDA BAŞLIYOR',
 
     'svc.hero_label': 'Neler Sunuyoruz',
-    'svc.hero_title': 'Tam Kapsamlı Mühendislik<br />& Teknoloji Hizmetleri',
+    'svc.hero_title': 'Uçtan uca mühendislik<br />& <em>teknoloji.</em>',
     'svc.hero_sub': 'Yapısal projelerden makine öğrenmesi hatlarına — hem fiziksel mühendislik dünyasında hem de dijital dünyada uçtan uca hizmetler sunuyoruz.',
     'svc.b1_label': 'Temel Gücümüz',
     'svc.b1_title': 'Mekanik & Yapısal Tasarım',
@@ -384,7 +409,7 @@ export const translations: Record<Language, TranslationDict> = {
     'svc.b3_label': 'Eşsiz Farkımız',
     'svc.b3_title': 'Entegre Mühendislik + Teknoloji',
     'svc.b3_desc': 'Bizi farklı kılan şey bu. Hem fiziksel mühendisliği hem de dijital sistemleri derinlemesine anladığımızda anlam kazanan entegre çözümler.',
-    'svc.intg_h': 'Fiziksel Güven ile Dijital Zekanın Sinerjisi',
+    'svc.intg_h': 'Fiziksel güven ile dijital <em>zekanın</em> sinerjisi',
     'svc.intg_p': 'Çoğu firma sadece inşaatla ya da sadece yazılımla ilgilenir. Biz aradaki köprüyü kuruyoruz. Mühendislik tecrübemiz sayesinde yazılımlarımız fiziksel kuralları bilir; yazılım tecrübemiz sayesinde de mühendislik projelerimiz çok daha hızlı ve hatasız tamamlanır.',
     'svc.intg_btn': 'Bir Proje Görüşün',
     'svc.feat1': 'Mühendislik Projeleri için Dijital İkiz Kavramları',
@@ -393,12 +418,12 @@ export const translations: Record<Language, TranslationDict> = {
     'svc.feat4': 'Mühendislik İş Akışı Otomasyon Araçları',
     'svc.feat5': 'IoT\'ye Hazır Akıllı İzleme Mimarileri',
     'svc.cta_label': 'Sonraki Adım',
-    'svc.cta_title': 'Aklınızda Bir Proje mi Var?',
+    'svc.cta_title': 'Aklınızda bir <em>proje</em> mi var?',
     'svc.cta_sub': 'İster bir sıhhi tesisat çizimi, ister bir veri hattı, isterse de büyük bir yapay zeka entegrasyonu olsun — bize yazın, en kısa sürede dönüş yapalım.',
     'svc.cta_btn': 'Mesaj Gönderin',
 
     'about.hero_label': 'Hikayemiz',
-    'about.hero_title': 'İki Ortak, İki Nesil,<br />Bir Vizyon',
+    'about.hero_title': 'İki ortak, iki nesil,<br /><em>tek vizyon.</em>',
     'about.hero_sub': 'Onlarca yıllık hassas mekanik mühendisliği üzerine kurulu bir aile şirketi; şimdi veri bilimi, bulut mühendisliği ve yapay zeka sınırlarına ulaşıyor.',
     'about.journey_title': 'Yolculuğumuz',
     'tl.apr2006': 'Nisan 2006',
@@ -473,13 +498,13 @@ export const translations: Record<Language, TranslationDict> = {
     'val.glob_t': 'Kökenlerimiz Adana\'da olsa da, geliştirdiğimiz yapay zeka çözümleri ve ortaklıklarımızla tüm dünyaya hizmet üretebilecek kapasitedeyiz.',
 
     'about_vis.label': 'Vizyonumuz',
-    'about_vis.title': 'Fiziksel ve Dijital Dünyanın Köprüsü',
+    'about_vis.title': 'Fiziksel ve dijital dünyanın <em>köprüsü.</em>',
     'about_vis.sub': 'Geleceğin en iyi mühendislik çözümlerinin hem fiziksel alan bilgisini hem de veri odaklı yazılım yeteneklerini bir araya getiren şirketlerden çıkacağına inanıyoruz.',
     'about_vis.btn1': 'Hizmetlerimizi İnceleyin',
     'about_vis.btn2': 'Bir Sohbet Başlatın',
 
     'cnt.hero_label': 'İletişime Geçin',
-    'cnt.hero_title': 'Projenizi<br />Detaylandıralım',
+    'cnt.hero_title': 'Projenizi<br /><em>konuşalım.</em>',
     'cnt.hero_sub': 'Geleneksel bir tesisat çizimine mi ihtiyacınız var yoksa gelişmiş bir yapay zeka otomasyonuna mı? Bize yazın, projelerinize birlikte yön verelim.',
     'cnt.info_label': 'İletişim Bilgileri',
     'cnt.addr_label': 'Ofisimiz',
@@ -487,11 +512,11 @@ export const translations: Record<Language, TranslationDict> = {
     'cnt.work_label': 'Çalışma Saatleri',
     'cnt.work_value': 'Pazartesi – Cuma (09:00 - 18:00)',
     'cnt.next_title': 'Süreç Nasıl İşler?',
-    'cnt.step1_title': '1. Mesajınızı Analiz Ediyoruz',
+    'cnt.step1_title': 'Mesajınızı Analiz Ediyoruz',
     'cnt.step1_text': 'Tüm mesajlar doğrudan kurucu ortaklarımız tarafından incelenir.',
-    'cnt.step2_title': '2. Teknik Uyum Analizi',
+    'cnt.step2_title': 'Teknik Uyum Analizi',
     'cnt.step2_text': 'Taleplerinizin uzmanlık alanlarımızla ne derece örtüştüğünü dürüstçe değerlendiririz.',
-    'cnt.step3_title': '3. Çözüm Önerisi & Dönüş',
+    'cnt.step3_title': 'Çözüm Önerisi & Dönüş',
     'cnt.step3_text': 'Konuyla ilgili uzman ortağımız sizinle iletişime geçerek süreci başlatır.',
     'cnt.form_title': 'Bizlere Mesaj Gönderin',
     'cnt.form_sub': 'Lütfen aşağıdaki formu eksiksiz doldurarak talebinizi iletiniz.',
@@ -530,6 +555,30 @@ export const translations: Record<Language, TranslationDict> = {
     'cnt.loc_title': 'Adana Ofisimiz',
     'cnt.loc_sub': 'Ofisimiz Seyhan Reşatbey Mahallesi\'nde, ulaşımı son derece kolay merkezi bir noktadadır.',
     'cnt.map_btn': 'Google Haritalar\'da Yol Tarifi Al',
+
+    'hero.plate': 'Levha 01 — Sekiz köşeli yıldız; pergel ve cetvelle.',
+    'hero.log_label': 'Atölye kaydı',
+    'manifesto.quote': 'Mekanik bir çizimde bir milimetre, kodda ise tek bir karakter <em>her şeyi</em> değiştirir.',
+    'manifesto.attrib': 'İlk ilkemiz — Hassasiyet',
+    'svc.details': 'Ayrıntılar',
+    'svc.view_all': 'Tüm hizmetleri görün',
+    'svc.scope_h': 'Teknik kapsam',
+    'svc.feat_h': 'İki dünyanın kesiştiği yer',
+    'svc.badge_ai': 'İleri teknoloji',
+    'svc.badge_ds': 'Veri & analitik',
+    'svc.badge_mep': 'Köklü uzmanlık',
+    'techneos.scope_detail': 'Uzaktan veri bilimi hatları, otomatik makine öğrenmesi iş akışları ve özel LLM ajan sistemleri.',
+    'techneos.tagline': 'Türkiye\'deki özel teknik ortak',
+    'techneos.route': 'veri hattı',
+    'team.focus': 'Odak alanları',
+    'reg.official': 'Resmi kayıt',
+    'about.registry_label': 'Resmi sicil',
+    'nav.menu': 'Menü',
+    'nav.close': 'Kapat',
+    'footer.top': 'Başa dön',
+    'footer.sheet': 'Levha',
+    'footer.drawn': 'Çizen',
+    'footer.scale': 'Ölçek',
   },
   en: {
     'nav.home': 'Home',
@@ -562,11 +611,11 @@ export const translations: Record<Language, TranslationDict> = {
 
     // Call to Action
     'cta.label': 'Ready to Start?',
-    'cta.title': "Let's Build Something Together",
+    'cta.title': "Let's build something <em>together.</em>",
     'cta.sub': "Whether you need a technical drawing, a software solution, or a project that combines both — we'd love to hear from you.",
 
     'hero.eyebrow': 'Adana, Turkey &mdash; Est. 2006',
-    'hero.title': 'Engineering<br />Meets <span class="text-sky-500">Innovation</span>',
+    'hero.title': 'Engineering<br />meets <em>innovation.</em>',
     'hero.desc': 'We bridge precision mechanical engineering with modern software development, data science, and AI engineering — delivering integrated solutions that traditional firms cannot.',
     'hero.btn_services': 'Explore Services',
     'hero.btn_contact': 'Contact Us',
@@ -588,7 +637,7 @@ export const translations: Record<Language, TranslationDict> = {
     'stats.core_disc': 'Core Disciplines',
 
     'techneos.label': 'Partnership Focus',
-    'techneos.title': 'Technological Partnership with Techneos (Italy)',
+    'techneos.title': 'A <em>technology</em> partnership with Techneos (Italy)',
     'techneos.desc': 'Atlas Proje is the exclusive Turkey-based technical partner and contractor of Techneos (Italy). Within this high-value international collaboration, we deliver remote data science, machine learning pipelines, and advanced AI engineering support for their European operations. This partnership stands as validation of our modern capabilities — proving that a firm rooted in traditional engineering trust can simultaneously execute world-class AI workflows across borders.',
     'techneos.badge': 'Global Alliance in Engineering and Artificial Intelligence',
     'techneos.scope': 'Scope of Collaboration',
@@ -598,28 +647,28 @@ export const translations: Record<Language, TranslationDict> = {
     'idx.svc_title': 'Our Services',
     'idx.svc_sub': 'From blueprint to binary — we deliver comprehensive solutions in engineering, data science, and AI.',
 
-    'svc.ai_title': '1. AI Engineering & LLM Agentic Workflows',
+    'svc.ai_title': 'AI Engineering & LLM Agentic Workflows',
     'svc.ai_desc': 'We deploy autonomous AI agents that integrate with your custom enterprise tools, communicate with internal data, and automate repetitive tasks.',
     'svc.ai_bullet1': 'Custom LLM Agents and Chatbot Architectures',
     'svc.ai_bullet2': 'Retrieval-Augmented Generation (RAG) Systems',
     'svc.ai_bullet3': 'Tool-integrated and API-driven Agent Workflows',
     'svc.ai_bullet4': 'AI-assisted Process Automation',
 
-    'svc.ds_title': '2. Data Science & Machine Learning',
+    'svc.ds_title': 'Data Science & Machine Learning',
     'svc.ds_desc': 'We translate raw structured or unstructured data into predictive assets, building reliable data pipelines and production-grade ML models.',
     'svc.ds_bullet1': 'Predictive Modeling and Statistical Analysis',
     'svc.ds_bullet2': 'End-to-end Data Pipelines (ETL/ELT)',
     'svc.ds_bullet3': 'Anomaly Detection and Time Series Forecasting',
     'svc.ds_bullet4': 'Business Intelligence and Interactive Dashboards',
 
-    'svc.mep_title': '3. Mechanical & MEP Engineering',
+    'svc.mep_title': 'Mechanical & MEP Engineering',
     'svc.mep_desc': 'Precision mechanical installation, plumbing, and structural oversight based on 18+ years of legacy advisory trust, serving private and public contracts.',
     'svc.mep_bullet1': 'HVAC, Fire Protection, and Plumbing Designs',
     'svc.mep_bullet2': 'CAD & Precision Mechanical Blueprints',
     'svc.mep_bullet3': 'Structural Calculations and Load Analyses',
     'svc.mep_bullet4': 'Engineering Consultancy and Tender Management',
 
-    'svc.training_title': '4. Digital Transformation & Corporate Training',
+    'svc.training_title': 'Digital Transformation & Corporate Training',
     'svc.training_desc': 'Upcoming specialized courses designed to upgrade teams in data literacy, analytical workflows, and basic AI integration.',
     'svc.training_bullet1': 'Data Literacy and Introduction to Analytics',
     'svc.training_bullet2': 'Practical AI & LLM Usage for Corporate Teams',
@@ -628,7 +677,7 @@ export const translations: Record<Language, TranslationDict> = {
     'svc.training_upcoming': 'LAUNCHING SOON',
 
     'svc.hero_label': 'What We Offer',
-    'svc.hero_title': 'Full-Spectrum Engineering<br />& Technology Services',
+    'svc.hero_title': 'Full-spectrum engineering<br />& <em>technology.</em>',
     'svc.hero_sub': 'From structural blueprints to machine learning pipelines — we deliver across both physical and digital engineering environments.',
     'svc.b1_label': 'Traditional Strength',
     'svc.b1_title': 'Mechanical & MEP Design',
@@ -639,7 +688,7 @@ export const translations: Record<Language, TranslationDict> = {
     'svc.b3_label': 'Our Unique Edge',
     'svc.b3_title': 'Integrated Engineering + Tech',
     'svc.b3_desc': 'The unique convergence of physical engineering domain expertise and intelligent software systems to create robust hybrid solutions.',
-    'svc.intg_h': 'Bridging Physical Rigor and Digital Intelligence',
+    'svc.intg_h': 'Bridging physical rigor and digital <em>intelligence</em>',
     'svc.intg_p': 'Most firms excel in either construction or programming. We build the bridge between them. Our engineering foundation informs our software with physical constraints, while our software capability makes our engineering layouts faster and less prone to errors.',
     'svc.intg_btn': 'Discuss a Project',
     'svc.feat1': 'Digital Twin Concepts for Engineering Projects',
@@ -648,12 +697,12 @@ export const translations: Record<Language, TranslationDict> = {
     'svc.feat4': 'Engineering Workflow Automation Tools',
     'svc.feat5': 'IoT-Ready Smart Monitoring Architectures',
     'svc.cta_label': 'Next Step',
-    'svc.cta_title': 'Have a Project in Mind?',
+    'svc.cta_title': 'Have a <em>project</em> in mind?',
     'svc.cta_sub': 'Whether you need a plumbing blueprint, a data processing pipeline, or a custom AI automation — let us know, and we will get back to you.',
     'svc.cta_btn': 'Send Us a Message',
 
     'about.hero_label': 'Our Story',
-    'about.hero_title': 'Two Partners, Two Generations,<br />One Vision',
+    'about.hero_title': 'Two partners, two generations,<br /><em>one vision.</em>',
     'about.hero_sub': 'A father-and-son engineering limited company built on decades of precision mechanical engineering, now expanding into the frontier of software and data science.',
     'about.journey_title': 'Our Journey',
     'tl.apr2006': 'April 2006',
@@ -728,13 +777,13 @@ export const translations: Record<Language, TranslationDict> = {
     'val.glob_t': 'Rooted in Adana, operating globally. Our technology processes are shaped by working alongside European teams and adopting global best practices.',
 
     'about_vis.label': 'Looking Ahead',
-    'about_vis.title': 'Our Vision: The Physical-Digital Bridge',
+    'about_vis.title': 'The bridge between the physical and the <em>digital.</em>',
     'about_vis.sub': 'We believe the most impactful engineering solutions of the next decade will come from firms that understand both physical hardware constraints and digital software intelligence.',
     'about_vis.btn1': 'Explore Our Services',
     'about_vis.btn2': 'Start a Conversation',
 
     'cnt.hero_label': 'Get in Touch',
-    'cnt.hero_title': 'Let\'s Talk About<br />Your Project',
+    'cnt.hero_title': 'Let\'s talk about<br /><em>your project.</em>',
     'cnt.hero_sub': 'Do you need a traditional building piping layout, or a customized AI pipeline? Send us a message, and let\'s work together.',
     'cnt.info_label': 'Our Details',
     'cnt.addr_label': 'Office Address',
@@ -742,11 +791,11 @@ export const translations: Record<Language, TranslationDict> = {
     'cnt.work_label': 'Working Hours',
     'cnt.work_value': 'Monday – Friday (09:00 - 18:00)',
     'cnt.next_title': 'What Happens Next?',
-    'cnt.step1_title': '1. We Read Your Message',
+    'cnt.step1_title': 'We Read Your Message',
     'cnt.step1_text': 'Every inquiry is read personally by our founding partners.',
-    'cnt.step2_title': '2. Technical Alignment Check',
+    'cnt.step2_title': 'Technical Alignment Check',
     'cnt.step2_text': 'We evaluate honestly whether we are the best fit for your technical requirements.',
-    'cnt.step3_title': '3. Solution Proposal',
+    'cnt.step3_title': 'Solution Proposal',
     'cnt.step3_text': 'The relevant partner follows up directly to schedule a project kickoff.',
     'cnt.form_title': 'Send Us a Message',
     'cnt.form_sub': 'Fill in the form below and we will get back to you as soon as possible.',
@@ -785,5 +834,29 @@ export const translations: Record<Language, TranslationDict> = {
     'cnt.loc_title': 'Adana Office',
     'cnt.loc_sub': 'Our office is located in Seyhan Reşatbey, a central location with easy transit access.',
     'cnt.map_btn': 'Get Directions on Google Maps',
+
+    'hero.plate': 'Plate 01 — An eight-point star, by compass and rule.',
+    'hero.log_label': 'Workshop log',
+    'manifesto.quote': 'In a mechanical drawing, a millimetre matters. In code, a single character changes <em>everything.</em>',
+    'manifesto.attrib': 'Our first principle — Precision',
+    'svc.details': 'Details',
+    'svc.view_all': 'View all services',
+    'svc.scope_h': 'Technical scope',
+    'svc.feat_h': 'Where the two worlds meet',
+    'svc.badge_ai': 'Advanced tech',
+    'svc.badge_ds': 'Data & analytics',
+    'svc.badge_mep': 'Traditional strength',
+    'techneos.scope_detail': 'Remote data science pipelines, automated machine learning workflows, and custom LLM agent systems.',
+    'techneos.tagline': 'Exclusive technical partner in Turkey',
+    'techneos.route': 'data pipeline',
+    'team.focus': 'Key focus areas',
+    'reg.official': 'Official records',
+    'about.registry_label': 'Official registry',
+    'nav.menu': 'Menu',
+    'nav.close': 'Close',
+    'footer.top': 'Back to top',
+    'footer.sheet': 'Sheet',
+    'footer.drawn': 'Drawn',
+    'footer.scale': 'Scale',
   }
 };

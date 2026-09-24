@@ -1,193 +1,173 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Menu, X, Globe } from 'lucide-react';
+import { PageLink } from './PageLink';
+import type { Page } from '../lib/router';
+import { StarGlyph } from './ui';
+import { LOGO_ATLAS } from '../lib/assets';
 
 interface HeaderProps {
-  currentPage: string;
-  setCurrentPage: (page: string) => void;
+  currentPage: Page;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage }) => {
-  const { language, setLanguage, t } = useLanguage();
+const LanguageToggle = ({ className = '' }: { className?: string }) => {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <div className={`eyebrow flex items-center gap-1.5 ${className}`}>
+      {(['tr', 'en'] as const).map((lang, i) => (
+        <span key={lang} className="flex items-center gap-1.5">
+          {i > 0 && <span aria-hidden className="opacity-40">/</span>}
+          <button
+            onClick={() => setLanguage(lang)}
+            aria-pressed={language === lang}
+            className={`transition-colors ${language === lang ? 'text-current' : 'opacity-45 hover:opacity-100'}`}
+          >
+            {lang.toUpperCase()}
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+};
+
+export const Header = ({ currentPage }: HeaderProps) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 30) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const navLinks = [
-    { id: 'home', label: t('nav.home') },
+  // Lock page scroll while the mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  useEffect(() => setIsOpen(false), [currentPage]);
+
+  const navLinks: { id: Page; label: string }[] = [
     { id: 'services', label: t('nav.services') },
     { id: 'about', label: t('nav.about') },
   ];
 
-  const handleNavClick = (pageId: string) => {
-    setCurrentPage(pageId);
-    setIsOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
-    <header className={`sticky top-0 z-50 transition-all duration-300 ${
-      scrolled 
-        ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200 py-3' 
-        : 'bg-white py-5 border-b border-slate-100'
-    }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <button 
-            onClick={() => handleNavClick('home')} 
-            className="flex items-center gap-3 text-left focus:outline-none group transition-spring hover:scale-102"
-            aria-label="Atlas Proje Home"
-          >
-            <div className="w-10 h-10 bg-white border border-slate-100 rounded-lg flex items-center justify-center p-1 shadow-sm transition-spring group-hover:rotate-6">
-              <img 
-                src={`${import.meta.env.BASE_URL}assets/logo/logo_atlas.png`} 
-                alt="Atlas Proje Logo" 
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<span class="text-sky-655 text-sky-600 font-extrabold text-sm">AP</span>';
-                  }
-                }}
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-slate-900 font-extrabold tracking-wider text-base sm:text-lg group-hover:text-sky-600 transition-colors">
-                ATLAS PROJE
-              </span>
-              <span className="text-slate-505 text-xxs sm:text-xs font-semibold text-slate-500">
-                {t('logo.sub')}
-              </span>
-            </div>
-          </button>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            <ul className="flex items-center gap-6">
-              {navLinks.map((link) => (
-                <li key={link.id}>
-                  <button
-                    onClick={() => handleNavClick(link.id)}
-                    className={`font-semibold text-sm transition-colors py-2 focus:outline-none ${
-                      currentPage === link.id
-                        ? 'text-sky-600 border-b-2 border-sky-600'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {link.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            {/* CTA Button */}
-            <button
-              onClick={() => handleNavClick('contact')}
-              className={`text-xs font-bold uppercase tracking-wider py-2.5 px-5 rounded transition-all duration-205 ${
-                currentPage === 'contact'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                  : 'bg-transparent text-sky-600 border border-sky-600 hover:bg-sky-50'
-              }`}
-            >
-              {t('nav.contact')}
-            </button>
-
-            {/* Language Switcher */}
-            <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded p-0.5">
-              <button
-                onClick={() => setLanguage('tr')}
-                className={`text-xs font-bold px-2.5 py-1 rounded transition-colors ${
-                  language === 'tr'
-                    ? 'bg-sky-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-950'
-                }`}
-                aria-pressed={language === 'tr'}
-              >
-                TR
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-                className={`text-xs font-bold px-2.5 py-1 rounded transition-colors ${
-                  language === 'en'
-                    ? 'bg-sky-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-950'
-                }`}
-                aria-pressed={language === 'en'}
-              >
-                EN
-              </button>
-            </div>
-          </nav>
-
-          {/* Mobile menu button */}
-          <div className="flex md:hidden items-center gap-4">
-            {/* Language switcher - compact for mobile header */}
-            <button
-              onClick={() => setLanguage(language === 'tr' ? 'en' : 'tr')}
-              className="flex items-center gap-1 text-slate-600 hover:text-slate-900 p-1.5 rounded bg-slate-100 border border-slate-205"
-              aria-label="Change Language"
-            >
-              <Globe className="w-4 h-4 text-sky-600" />
-              <span className="text-xs font-bold">{language.toUpperCase()}</span>
-            </button>
-
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-slate-600 hover:text-slate-900 p-2 rounded focus:outline-none"
-              aria-label="Toggle menu"
-            >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu Slide-out */}
-      <div
-        className={`md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-xl transition-all duration-300 ease-in-out overflow-hidden ${
-          isOpen ? 'max-h-screen opacity-100 py-4 visible' : 'max-h-0 opacity-0 invisible'
+    <>
+      <header
+        className={`sticky top-0 z-50 transition-[background-color,box-shadow,padding] duration-500 ${
+          scrolled
+            ? 'bg-paper/85 py-3 shadow-[0_1px_0_0_rgb(35_62_101_/_0.12)] backdrop-blur-md'
+            : 'bg-transparent py-5 sm:py-6'
         }`}
       >
-        <div className="px-4 space-y-3 pb-4">
-          {navLinks.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => handleNavClick(link.id)}
-              className={`block w-full text-left font-semibold text-base py-2.5 px-3 rounded transition-colors ${
-                currentPage === link.id
-                  ? 'bg-sky-50 text-sky-700'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
-              }`}
+        <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between gap-6 px-5 sm:px-8 lg:px-12">
+          <PageLink to="home" className="group flex items-center gap-3" aria-label="Atlas Proje">
+            <img
+              src={LOGO_ATLAS}
+              alt=""
+              className="h-9 w-9 object-contain transition-transform duration-[1.2s] ease-out-soft group-hover:rotate-[45deg]"
+            />
+            <span className="flex flex-col leading-none">
+              <span className="display text-[1.35rem] tracking-[-0.02em] text-navy">Atlas Proje</span>
+              <span className="eyebrow mt-1 hidden text-[0.6rem] text-ink-soft sm:block">{t('logo.sub')}</span>
+            </span>
+          </PageLink>
+
+          <nav aria-label="Primary" className="hidden items-center gap-10 md:flex">
+            <ul className="flex items-center gap-8">
+              {navLinks.map((link) => {
+                const active = currentPage === link.id;
+                return (
+                  <li key={link.id}>
+                    <PageLink
+                      to={link.id}
+                      aria-current={active ? 'page' : undefined}
+                      className={`group relative flex items-center gap-2 text-[0.95rem] transition-colors ${
+                        active ? 'text-navy' : 'text-ink-soft hover:text-navy'
+                      }`}
+                    >
+                      <StarGlyph
+                        className={`h-2.5 w-2.5 text-gold transition-all duration-500 ${
+                          active ? 'scale-100 opacity-100' : 'scale-50 opacity-0 group-hover:scale-100 group-hover:opacity-60'
+                        }`}
+                      />
+                      {link.label}
+                    </PageLink>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <LanguageToggle className="text-navy" />
+
+            <PageLink
+              to="contact"
+              aria-current={currentPage === 'contact' ? 'page' : undefined}
+              className="rounded-full bg-oxblood px-5 py-2.5 text-[0.9rem] font-medium text-paper transition-colors duration-300 hover:bg-oxblood-deep"
             >
-              {link.label}
-            </button>
-          ))}
+              {t('nav.contact')}
+            </PageLink>
+          </nav>
+
           <button
-            onClick={() => handleNavClick('contact')}
-            className={`block w-full text-center font-bold text-sm py-3 px-4 rounded transition-colors uppercase tracking-wider ${
-              currentPage === 'contact'
-                ? 'bg-sky-600 text-white'
-                : 'bg-transparent text-sky-600 border border-sky-600 hover:bg-sky-50'
-            }`}
+            onClick={() => setIsOpen(true)}
+            className="eyebrow flex items-center gap-2 text-navy md:hidden"
+            aria-expanded={isOpen}
+            aria-controls="mobile-menu"
           >
-            {t('nav.contact')}
+            {t('nav.menu')}
+            <span aria-hidden className="flex flex-col gap-[5px]">
+              <span className="block h-px w-6 bg-navy" />
+              <span className="block h-px w-4 self-end bg-navy" />
+            </span>
           </button>
         </div>
+      </header>
+
+      {/* Mobile menu — full-screen sheet (outside the header: its backdrop-filter would trap position: fixed) */}
+      <div
+        id="mobile-menu"
+        className={`on-dark fixed inset-0 z-[60] flex flex-col bg-navy-deep text-paper transition-[opacity,visibility] duration-500 md:hidden ${
+          isOpen ? 'visible opacity-100' : 'invisible opacity-0'
+        }`}
+        aria-hidden={!isOpen}
+      >
+        <div className="flex items-center justify-between px-5 py-5 sm:px-8">
+          <LanguageToggle className="text-paper" />
+          <button onClick={() => setIsOpen(false)} className="eyebrow text-paper">
+            {t('nav.close')} ✕
+          </button>
+        </div>
+        <nav aria-label="Mobile" className="flex flex-1 flex-col justify-center px-5 sm:px-8">
+          <ol className="space-y-3">
+            {(['home', 'services', 'about', 'contact'] as Page[]).map((id, i) => (
+              <li
+                key={id}
+                className={`transition-all duration-700 ease-out-soft ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}
+                style={{ transitionDelay: isOpen ? `${120 + i * 70}ms` : '0ms' }}
+              >
+                <PageLink
+                  to={id}
+                  onClick={() => setIsOpen(false)}
+                  tabIndex={isOpen ? 0 : -1}
+                  className="flex items-baseline gap-4"
+                >
+                  <span className="eyebrow text-gold-light">0{i + 1}</span>
+                  <span className={`display text-5xl ${currentPage === id ? 'italic text-gold-light' : ''}`}>
+                    {t(id === 'home' ? 'nav.home' : id === 'contact' ? 'bc.contact' : id === 'services' ? 'nav.services' : 'nav.about')}
+                  </span>
+                </PageLink>
+              </li>
+            ))}
+          </ol>
+        </nav>
+        <p className="eyebrow px-5 pb-8 text-paper/50 sm:px-8">Adana · 37°00′N 35°19′E</p>
       </div>
-    </header>
+    </>
   );
 };

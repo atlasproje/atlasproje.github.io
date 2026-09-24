@@ -1,169 +1,124 @@
-import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { MapPin, ChevronRight, Mail } from 'lucide-react';
+import { PageLink } from './PageLink';
+import type { Page } from '../lib/router';
+import { Container, Rich } from './ui';
+import { LOGO_ATLAS } from '../lib/assets';
 
-interface FooterProps {
-  setCurrentPage: (page: string) => void;
-}
+const SHEET: Record<Page, string> = { home: '01', services: '02', about: '03', contact: '04' };
 
-export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
+export const Footer = ({ currentPage }: { currentPage: Page }) => {
   const { t } = useLanguage();
 
-  const handleNavClick = (pageId: string) => {
-    setCurrentPage(pageId);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const pages: { id: Page; label: string }[] = [
+    { id: 'home', label: t('nav.home') },
+    { id: 'services', label: t('nav.services') },
+    { id: 'about', label: t('nav.about') },
+    { id: 'contact', label: t('footer.contact') },
+  ];
+
+  const services: { section: string; label: string }[] = [
+    { section: 'mechanical-mep', label: t('footer.mech_eng') },
+    { section: 'ai-workflows', label: t('footer.sw_dev') },
+    { section: 'data-science', label: t('footer.data_sci') },
+    { section: 'integrated', label: t('footer.integrated') },
+  ];
+
+  // Drawing-sheet title block, as found in the corner of every engineering drawing
+  const titleBlock = [
+    { k: 'Atlas Proje', v: 'Müşavirlik Mühendislik İnşaat Taahhüt Tic. Ltd. Şti.', wide: true },
+    { k: t('footer.drawn'), v: 'İ.Ü. · M.Ü.' },
+    { k: t('footer.scale'), v: '1 : 1' },
+    { k: t('footer.sheet'), v: `${SHEET[currentPage]} / 04` },
+  ];
 
   return (
-    <footer className="bg-slate-950 text-slate-400 border-t border-slate-900 pt-16 pb-8 text-left">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Top Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 pb-12 border-b border-slate-900">
-          
-          {/* Brand */}
-          <div className="lg:col-span-4 space-y-4">
-            <button 
-              onClick={() => handleNavClick('home')} 
-              className="flex items-center gap-3 text-left focus:outline-none group transition-spring hover:scale-102"
-            >
-              <div className="w-10 h-10 bg-white border border-slate-800 rounded-lg flex items-center justify-center p-1 shadow-sm transition-spring group-hover:rotate-6">
-                <img 
-                  src={`${import.meta.env.BASE_URL}assets/logo/logo_atlas.png`} 
-                  alt="Atlas Proje Logo" 
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const parent = target.parentElement;
-                    if (parent) {
-                      parent.innerHTML = '<span class="text-sky-600 font-extrabold text-sm">AP</span>';
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white font-extrabold tracking-wider text-base group-hover:text-sky-400 transition-colors">
-                  ATLAS PROJE
-                </span>
-                <span className="text-slate-500 font-medium text-xxs sm:text-xs">
-                  {t('logo.sub')}
-                </span>
-              </div>
-            </button>
-            <p className="text-slate-400 text-xs sm:text-sm font-light leading-relaxed">
-              {t('footer.brand_desc')}
-            </p>
-            <p className="text-slate-500 text-xxs font-semibold uppercase tracking-wider">
-              Sicil No: 49321 — Adana Ticaret Sicil Memurluğu
-            </p>
+    <footer className="on-dark relative overflow-hidden bg-navy-deep text-paper">
+      <Container className="pt-20 lg:pt-28">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-5">
+            <PageLink to="home" className="inline-flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-paper p-1.5">
+                <img src={LOGO_ATLAS} alt="" className="h-full w-full object-contain" />
+              </span>
+              <span className="display text-2xl">Atlas Proje</span>
+            </PageLink>
+            <p className="mt-6 max-w-md text-[0.95rem] leading-relaxed text-paper/65">{t('footer.brand_desc')}</p>
           </div>
 
-          {/* Quick Pages */}
-          <div className="lg:col-span-2 space-y-4">
-            <h4 className="text-white font-extrabold text-xs sm:text-sm tracking-wider uppercase">
-              {t('footer.pages')}
-            </h4>
-            <ul className="space-y-2.5 text-xs sm:text-sm font-medium">
-              {[
-                { id: 'home', label: t('nav.home') },
-                { id: 'services', label: t('nav.services') },
-                { id: 'about', label: t('nav.about') },
-                { id: 'contact', label: t('nav.contact') }
-              ].map((link) => (
-                <li key={link.id}>
-                  <button 
-                    onClick={() => handleNavClick(link.id)} 
-                    className="flex items-center gap-1 hover:text-white transition-colors py-0.5 focus:outline-none"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 text-sky-500/60" />
-                    <span>{link.label}</span>
-                  </button>
+          <nav aria-label="Footer" className="lg:col-span-2 lg:col-start-7">
+            <h2 className="eyebrow text-gold-light">{t('footer.pages')}</h2>
+            <ul className="mt-5 space-y-2.5">
+              {pages.map((p) => (
+                <li key={p.id}>
+                  <PageLink to={p.id} className="u-grow text-[0.95rem] text-paper/80 hover:text-paper">
+                    {p.label}
+                  </PageLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="lg:col-span-2">
+            <h2 className="eyebrow text-gold-light">{t('footer.svc_heading')}</h2>
+            <ul className="mt-5 space-y-2.5">
+              {services.map((s) => (
+                <li key={s.section}>
+                  <PageLink to="services" section={s.section} className="u-grow text-[0.95rem] text-paper/80 hover:text-paper">
+                    {s.label}
+                  </PageLink>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Services Quick Links */}
-          <div className="lg:col-span-3 space-y-4">
-            <h4 className="text-white font-extrabold text-xs sm:text-sm tracking-wider uppercase">
-              {t('footer.svc_heading')}
-            </h4>
-            <ul className="space-y-2.5 text-xs sm:text-sm font-medium">
-              <li>
-                <button 
-                  onClick={() => handleNavClick('services')}
-                  className="flex items-center gap-1 hover:text-white transition-colors py-0.5 focus:outline-none"
-                >
-                  <ChevronRight className="w-3.5 h-3.5 text-sky-500/60" />
-                  <span>{t('footer.mech_eng')}</span>
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => handleNavClick('services')}
-                  className="flex items-center gap-1 hover:text-white transition-colors py-0.5 focus:outline-none"
-                >
-                  <ChevronRight className="w-3.5 h-3.5 text-sky-500/60" />
-                  <span>{t('footer.sw_dev')}</span>
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => handleNavClick('services')}
-                  className="flex items-center gap-1 hover:text-white transition-colors py-0.5 focus:outline-none"
-                >
-                  <ChevronRight className="w-3.5 h-3.5 text-sky-500/60" />
-                  <span>{t('footer.data_sci')}</span>
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => handleNavClick('services')}
-                  className="flex items-center gap-1 hover:text-white transition-colors py-0.5 focus:outline-none"
-                >
-                  <ChevronRight className="w-3.5 h-3.5 text-sky-500/60" />
-                  <span>{t('footer.integrated')}</span>
-                </button>
-              </li>
-            </ul>
+          <div className="lg:col-span-2">
+            <h2 className="eyebrow text-gold-light">{t('footer.cnt_heading')}</h2>
+            <address className="mt-5 text-[0.95rem] not-italic leading-relaxed text-paper/80">
+              Reşatbey Mah. Cumhuriyet Cad.
+              <br />
+              Gürbiçer Apt. Asma Kat No:6
+              <br />
+              Seyhan / Adana
+            </address>
+            <a href="mailto:metinunlu97@gmail.com" className="u-link mt-4 inline-block break-all text-[0.95rem] text-paper">
+              metinunlu97@gmail.com
+            </a>
           </div>
-
-          {/* Contact Details */}
-          <div className="lg:col-span-3 space-y-4">
-            <h4 className="text-white font-extrabold text-xs sm:text-sm tracking-wider uppercase">
-              {t('footer.cnt_heading')}
-            </h4>
-            <div className="flex gap-2">
-              <MapPin className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs sm:text-sm leading-relaxed text-slate-400 font-light">
-                Reşatbey Mah. Cumhuriyet Cad.<br />
-                Gürbiçer Apt. Asma Kat No:6<br />
-                Seyhan / Adana, Turkey
-              </p>
-            </div>
-            <div className="flex gap-2 items-center">
-              <Mail className="w-4 h-4 text-sky-500 flex-shrink-0" />
-              <a href="mailto:metinunlu97@gmail.com" className="text-xs sm:text-sm text-slate-400 font-light hover:text-white transition-colors">
-                metinunlu97@gmail.com
-              </a>
-            </div>
-          </div>
-
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xxs sm:text-xs">
-          <span 
-            className="text-slate-500 font-light text-center sm:text-left leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: t('footer.copyright') }}
-          />
-          <span className="text-slate-500 font-semibold tracking-wider italic uppercase">
-            {t('footer.tagline')}
+        {/* title block */}
+        <dl className="mt-20 grid grid-cols-2 gap-px border border-paper/20 bg-paper/20 font-mono text-[0.7rem] uppercase tracking-[0.1em] md:grid-cols-6">
+          {titleBlock.map((cell) => (
+            <div
+              key={cell.k}
+              className={`bg-navy-deep p-3 last:col-span-2 md:last:col-span-1 ${cell.wide ? 'col-span-2 md:col-span-3' : ''}`}
+            >
+              <dt className="text-paper/45">{cell.k}</dt>
+              <dd className="mt-1 text-paper/85">{cell.v}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="flex flex-col gap-4 py-8 text-[0.8rem] text-paper/50 sm:flex-row sm:items-center sm:justify-between">
+          <Rich html={t('footer.copyright')} />
+          <span className="flex items-center gap-6">
+            <span className="font-display italic">{t('footer.tagline')}</span>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="eyebrow u-grow text-paper/70 hover:text-paper"
+            >
+              ↑ {t('footer.top')}
+            </button>
           </span>
         </div>
+      </Container>
 
-      </div>
+      <p
+        aria-hidden
+        className="display pointer-events-none -mb-[0.2em] select-none whitespace-nowrap pl-3 text-[clamp(5rem,21vw,19rem)] leading-[0.9] text-gold/80 sm:pl-6"
+      >
+        Atlas <em className="!text-sand/25">Proje</em>
+      </p>
     </footer>
   );
 };

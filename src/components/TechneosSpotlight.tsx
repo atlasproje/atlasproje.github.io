@@ -1,141 +1,112 @@
+import type { CSSProperties } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Handshake, ShieldCheck, Cpu } from 'lucide-react';
+import { Container, Eyebrow, Reveal, Rich } from './ui';
+import { LOGO_ATLAS, LOGO_TECHNEOS } from '../lib/assets';
+
+const i = (n: number) => ({ '--i': n }) as CSSProperties;
+
+const IT = { x: 150, y: 168 };
+const TR = { x: 426, y: 262 };
+// Drawn west → east so the label along it reads left to right
+const ROUTE = `M${IT.x} ${IT.y} Q 292 64 ${TR.x} ${TR.y}`;
+
+/** A loose, hand-drawn chart of the Adana ⇄ Italy link. Not to scale — a drawing, not a map. */
+const RouteMap = ({ label }: { label: string }) => (
+  <svg viewBox="0 0 560 420" className="drawing w-full" role="img" aria-label="Atlas Proje (Adana, TR) — Techneos (IT)">
+    <defs>
+      <path id="route" d={ROUTE} />
+    </defs>
+
+    {/* graticule */}
+    <g filter="url(#rough)" fill="none" stroke="currentColor" className="text-paper" strokeOpacity=".14" strokeWidth=".8">
+      {[40, 120, 200, 280, 360, 440, 520].map((x, n) => (
+        <path key={`m${x}`} d={`M${x} 16 Q ${x + (x - 280) * 0.16} 210 ${x} 404`} className="ln" pathLength={1} style={i(n)} />
+      ))}
+      {[60, 140, 220, 300, 380].map((y, n) => (
+        <path key={`p${y}`} d={`M12 ${y} Q 280 ${y - 26} 548 ${y}`} className="ln" pathLength={1} style={i(n + 2)} />
+      ))}
+    </g>
+
+    {/* route */}
+    <g filter="url(#rough)" fill="none" strokeLinecap="round">
+      <path d={ROUTE} stroke="currentColor" className="ln text-gold-light" strokeOpacity=".35" strokeWidth="1" pathLength={1} style={i(6)} />
+      <path d={ROUTE} stroke="currentColor" className="fade flow text-gold-light" strokeWidth="1.8" strokeDasharray="2 8" style={i(9)} />
+    </g>
+    <text className="fade fill-paper/60 font-mono" fontSize="10.5" letterSpacing="2" dy="-10" textAnchor="middle" style={i(10)}>
+      <textPath href="#route" startOffset="50%">
+        {label.toUpperCase()}
+      </textPath>
+    </text>
+
+    {/* endpoints */}
+    {[
+      { ...TR, logo: LOGO_ATLAS, name: 'ATLAS PROJE', place: 'ADANA · TR', lx: 76, ly: -4, dy: 40 },
+      { ...IT, logo: LOGO_TECHNEOS, name: 'TECHNEOS', place: 'ITALIA · IT', lx: -76, ly: 4, dy: -40 },
+    ].map((p, n) => (
+      <g key={p.name} className="fade" style={i(11 + n)}>
+        <circle cx={p.x} cy={p.y} r={6} className="fill-gold-light" />
+        <circle cx={p.x} cy={p.y} r={6} className="pulse-ring fill-none stroke-gold-light" strokeWidth="1" />
+        <circle cx={p.x + p.lx} cy={p.y + p.ly} r={25} className="fill-paper" />
+        <image href={p.logo} x={p.x + p.lx - 16} y={p.y + p.ly - 16} width={32} height={32} />
+        <text x={p.x} y={p.y + p.dy} textAnchor="middle" className="fill-paper font-mono" fontSize="11" letterSpacing="1.6">
+          {p.name}
+        </text>
+        <text x={p.x} y={p.y + p.dy + 16} textAnchor="middle" className="fill-paper/55 font-mono" fontSize="10" letterSpacing="1.6">
+          {p.place}
+        </text>
+      </g>
+    ))}
+
+    {/* compass rose */}
+    <g transform="translate(500 360)" className="fade text-paper" style={i(14)} filter="url(#rough)">
+      <path d="M0 -22 L4 -4 L22 0 L4 4 L0 22 L-4 4 L-22 0 L-4 -4 Z" fill="none" stroke="currentColor" strokeOpacity=".6" />
+      <path d="M0 -22 L4 -4 L0 0 Z M22 0 L4 4 L0 0 Z M0 22 L-4 4 L0 0 Z M-22 0 L-4 -4 L0 0 Z" className="fill-gold-light" />
+      <text y={-30} textAnchor="middle" className="fill-paper font-display" fontSize="13" fontStyle="italic">
+        N
+      </text>
+    </g>
+  </svg>
+);
 
 export const TechneosSpotlight = () => {
   const { t } = useLanguage();
 
   return (
-    <section className="bg-slate-50 border-y border-slate-200 py-16 relative overflow-hidden">
-      {/* Background radial highlight */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-sky-200/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 lg:p-12 shadow-xl shadow-slate-105/10">
-          <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            
-            {/* Left Content */}
-            <div className="lg:col-span-7 space-y-6 text-left">
-              <div className="inline-flex items-center gap-2 bg-sky-50 text-sky-700 border border-sky-200 text-xxs sm:text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-                <Handshake className="w-4 h-4 text-sky-600" />
+    <section className="on-dark relative overflow-hidden bg-navy text-paper">
+      <Container className="py-24 lg:py-32">
+        <div className="grid gap-16 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-6">
+            <Reveal>
+              <Eyebrow n="03" dark>
                 {t('techneos.label')}
-              </div>
-              
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                {t('techneos.title')}
+              </Eyebrow>
+              <h2 className="display mt-6 text-[clamp(2.4rem,4.8vw,4.2rem)]">
+                <Rich html={t('techneos.title')} />
               </h2>
-
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-light">
-                {t('techneos.desc')}
-              </p>
-
-              {/* Partnership Highlights */}
-              <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-slate-800 font-bold text-sm">{t('techneos.badge')}</h4>
-                    <p className="text-slate-500 text-xs mt-1 leading-relaxed">
-                      {t('techneos.scope_desc')}
-                    </p>
-                  </div>
+            </Reveal>
+            <Reveal delay={120}>
+              <p className="mt-8 max-w-[60ch] text-[1.02rem] leading-[1.75] text-paper/75">{t('techneos.desc')}</p>
+            </Reveal>
+            <Reveal delay={200}>
+              <div className="mt-12 grid gap-8 border-t border-paper/15 pt-8 sm:grid-cols-2">
+                <div>
+                  <h3 className="font-display text-xl italic text-gold-light">{t('techneos.badge')}</h3>
+                  <p className="mt-3 text-[0.92rem] leading-relaxed text-paper/65">{t('techneos.scope_desc')}</p>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Cpu className="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-slate-800 font-bold text-sm">{t('techneos.scope')}</h4>
-                    <p className="text-slate-500 text-xs mt-1 leading-relaxed">
-                      Remote data science pipelines, automated machine learning workflows, and custom LLM agent systems.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="font-display text-xl italic text-gold-light">{t('techneos.scope')}</h3>
+                  <p className="mt-3 text-[0.92rem] leading-relaxed text-paper/65">{t('techneos.scope_detail')}</p>
                 </div>
               </div>
-            </div>
-
-            {/* Right Side Visual Logos and Connecting Line */}
-            <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-xl p-8 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/5 rounded-full blur-xl pointer-events-none" />
-              
-              {/* Partnership Connector Graphic */}
-              <div className="flex items-center justify-between w-full max-w-xs relative z-10">
-                {/* Atlas Proje Logo Block */}
-                <div className="flex flex-col items-center gap-2 group">
-                  <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl flex items-center justify-center p-3 shadow-sm transition-all group-hover:border-sky-500 duration-300">
-                    <img 
-                      src={`${import.meta.env.BASE_URL}assets/logo/logo_atlas.png`} 
-                      alt="Atlas Proje" 
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = '<span class="text-slate-900 font-extrabold text-lg">AP</span>';
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="text-slate-700 font-bold text-xs">Atlas Proje</span>
-                  <span className="text-slate-400 text-xxs font-semibold uppercase">Turkey</span>
-                </div>
-
-                {/* Animated Connector Line */}
-                <div className="flex-1 px-2 relative flex flex-col items-center justify-center">
-                  <svg className="w-full h-6" fill="none" viewBox="0 0 100 24">
-                    {/* Background line */}
-                    <path d="M 0 12 L 100 12" stroke="#e2e8f0" strokeWidth="2" strokeDasharray="3 3" />
-                    {/* Pulsing overlay line */}
-                    <path 
-                      d="M 0 12 L 100 12" 
-                      stroke="url(#pulseGrad)" 
-                      strokeWidth="3" 
-                      strokeDasharray="6 12"
-                      className="animate-pulse-flow"
-                      style={{ strokeDashoffset: 24 }}
-                    />
-                    <defs>
-                      <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#0ea5e9" />
-                        <stop offset="50%" stopColor="#14b8a6" />
-                        <stop offset="100%" stopColor="#0ea5e9" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <span className="text-[9px] text-sky-600 font-extrabold tracking-widest mt-1 uppercase select-none">
-                    Data Pipeline
-                  </span>
-                </div>
-
-                {/* Techneos Logo Block */}
-                <div className="flex flex-col items-center gap-2 group">
-                  <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl flex items-center justify-center p-3 shadow-sm transition-all group-hover:border-sky-500 duration-300">
-                    <img 
-                      src={`${import.meta.env.BASE_URL}assets/logo/logo_techneos.png`} 
-                      alt="Techneos" 
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = '<span class="text-sky-600 font-extrabold text-base">TECHNEOS</span>';
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="text-slate-700 font-bold text-xs">Techneos</span>
-                  <span className="text-slate-400 text-xxs font-semibold uppercase">Italy</span>
-                </div>
-              </div>
-
-              {/* Tagline */}
-              <div className="mt-8 text-center text-slate-400 text-xs font-light">
-                Exclusive Turkish Technical Partnership
-              </div>
-            </div>
-
+            </Reveal>
           </div>
+
+          <Reveal delay={150} className="lg:col-span-6 lg:col-start-7 lg:-mr-16 lg:-mt-6">
+            <RouteMap label={t('techneos.route')} />
+            <p className="eyebrow mt-4 text-right text-paper/55">— {t('techneos.tagline')}</p>
+          </Reveal>
         </div>
-      </div>
+      </Container>
     </section>
   );
 };

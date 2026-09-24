@@ -1,5 +1,22 @@
 import { useLanguage } from '../context/LanguageContext';
-import { Wrench, Terminal } from 'lucide-react';
+import { Eyebrow, Reveal } from './ui';
+
+/** Monogram set inside the pointed arch from the Atlas mark. */
+const ArchPortrait = ({ initials }: { initials: string }) => (
+  <svg viewBox="0 0 120 160" className="w-28 sm:w-full" aria-hidden>
+    <path d="M0 160 V70 C0 36 26 16 60 0 C94 16 120 36 120 70 V160 Z" className="fill-navy" />
+    <path
+      d="M10 160 V73 C10 44 32 26 60 12 C88 26 110 44 110 73 V160"
+      fill="none"
+      className="stroke-gold"
+      strokeWidth="1.2"
+      filter="url(#rough)"
+    />
+    <text x={60} y={108} textAnchor="middle" fontFamily="Fraunces, serif" fontStyle="italic" fontSize="40" className="fill-gold-light">
+      {initials}
+    </text>
+  </svg>
+);
 
 export const Team = () => {
   const { t } = useLanguage();
@@ -10,102 +27,45 @@ export const Team = () => {
       name: 'İlmiz Ünlü',
       title: t('team.ilmaz_ttl'),
       bio: t('team.ilmaz_bio'),
-      avatarBg: 'bg-slate-50 border border-slate-200 text-sky-600 shadow-inner',
-      icon: <Wrench className="w-4 h-4 text-sky-600" />,
-      tags: [
-        t('tag.mech_eng'),
-        t('tag.tech_draw'),
-        t('tag.structural'),
-        t('tag.constr_mgmt'),
-        t('tag.proj_cons')
-      ]
+      tags: [t('tag.mech_eng'), t('tag.tech_draw'), t('tag.structural'), t('tag.constr_mgmt'), t('tag.proj_cons')],
+      offset: '',
     },
     {
       initials: 'MÜ',
       name: 'Metin Ünlü',
       title: t('team.aysuhan_ttl'),
       bio: t('team.aysuhan_bio'),
-      avatarBg: 'bg-slate-55 bg-slate-50 border border-slate-200 text-teal-605 text-teal-600 shadow-inner',
-      icon: <Terminal className="w-4 h-4 text-teal-600" />,
-      tags: [
-        t('tag.sw_dev'),
-        t('tag.data_sci'),
-        t('tag.ml'),
-        t('tag.api'),
-        t('tag.db'),
-        t('tag.intl'),
-        t('tag.ai_eng'),
-        t('tag.llm')
-      ]
-    }
+      tags: [t('tag.sw_dev'), t('tag.data_sci'), t('tag.ml'), t('tag.api'), t('tag.db'), t('tag.intl'), t('tag.ai_eng'), t('tag.llm')],
+      offset: 'lg:mt-32',
+    },
   ];
 
   return (
-    <section className="py-16 text-left">
-      <div className="space-y-12">
-        {/* Header */}
-        <div className="border-b border-slate-200 pb-6 max-w-3xl">
-          <span className="text-sky-700 text-xs font-extrabold uppercase tracking-widest bg-sky-50 border border-sky-200/60 px-3.5 py-1 rounded-full">
-            {t('team.label')}
-          </span>
-          <h2 className="text-3xl font-extrabold text-slate-900 mt-4 tracking-tight">
-            {t('team.title')}
-          </h2>
-          <p className="text-slate-500 text-sm sm:text-base font-light mt-2 leading-relaxed">
-            {t('team.sub')}
-          </p>
+    <div>
+      <Reveal className="grid gap-8 lg:grid-cols-12 lg:items-end">
+        <div className="lg:col-span-6">
+          <Eyebrow n="04">{t('team.label')}</Eyebrow>
+          <h2 className="display mt-6 text-[clamp(2.6rem,5.4vw,4.8rem)] text-navy">{t('team.title')}</h2>
         </div>
+        <p className="lede lg:col-span-4 lg:col-start-8">{t('team.sub')}</p>
+      </Reveal>
 
-        {/* Co-founder Synergy Cards */}
-        <div className="grid md:grid-cols-2 gap-8">
-          {members.map((member, idx) => (
-            <article 
-              key={idx}
-              className="bg-white border border-slate-205 border-slate-200 p-6 sm:p-8 rounded-xl shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow duration-300"
-            >
-              <div className="space-y-6">
-                {/* Header Block */}
-                <div className="flex items-center gap-4">
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center font-black text-xl ${member.avatarBg}`}>
-                    {member.initials}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                      {member.name}
-                    </h3>
-                    <p className="text-sky-655 text-sky-600 text-xs sm:text-sm font-semibold mt-0.5 flex items-center gap-1.5">
-                      {member.icon}
-                      {member.title}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Biography */}
-                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-light">
-                  {member.bio}
-                </p>
-              </div>
-
-              {/* Tags Grid */}
-              <div className="mt-8 pt-6 border-t border-slate-100">
-                <span className="text-xxs font-extrabold uppercase tracking-widest text-slate-400 block mb-3">
-                  Key Focus Areas
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {member.tags.map((tag, tagIdx) => (
-                    <span 
-                      key={tagIdx}
-                      className="bg-slate-50 border border-slate-150 text-slate-655 text-slate-700 font-semibold text-xxs px-2.5 py-1 rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+      <div className="mt-16 grid gap-20 lg:grid-cols-2 lg:gap-16">
+        {members.map((m, idx) => (
+          <Reveal key={m.name} delay={idx * 150} className={m.offset}>
+            <article className="grid gap-8 sm:grid-cols-[8.5rem_1fr]">
+              <ArchPortrait initials={m.initials} />
+              <div>
+                <h3 className="display text-[2.3rem] leading-none text-navy">{m.name}</h3>
+                <p className="mt-2 font-display text-lg italic text-oxblood">{m.title}</p>
+                <p className="mt-5 leading-relaxed text-ink-soft">{m.bio}</p>
+                <p className="eyebrow mt-7 text-gold">{t('team.focus')}</p>
+                <p className="mt-2 text-[0.93rem] leading-relaxed text-ink">{m.tags.join('  ·  ')}</p>
               </div>
             </article>
-          ))}
-        </div>
+          </Reveal>
+        ))}
       </div>
-    </section>
+    </div>
   );
 };

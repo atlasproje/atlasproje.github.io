@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { ChangeEvent, FocusEvent, FormEvent, ReactNode } from 'react';
+import { ArrowUpRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { Send, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { StarGlyph } from './ui';
 
 interface FormFields {
   firstName: string;
@@ -12,65 +14,62 @@ interface FormFields {
   message: string;
 }
 
-export const ContactForm: React.FC = () => {
+type Touched = Record<keyof FormFields, boolean>;
+
+const EMPTY: FormFields = { firstName: '', lastName: '', email: '', phone: '', company: '', service: '', message: '' };
+const UNTOUCHED: Touched = { firstName: false, lastName: false, email: false, phone: false, company: false, service: false, message: false };
+const ALL_TOUCHED: Touched = { firstName: true, lastName: true, email: true, phone: true, company: true, service: true, message: true };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const Field = ({ id, label, required, children }: { id: string; label: string; required?: boolean; children: ReactNode }) => (
+  <div>
+    <label htmlFor={id} className="eyebrow text-[0.66rem] text-ink-soft">
+      {label.replace(' *', '')}
+      {required && <span className="ml-1 text-oxblood">*</span>}
+    </label>
+    {children}
+  </div>
+);
+
+export const ContactForm = () => {
   const { t } = useLanguage();
-  const [fields, setFields] = useState<FormFields>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    company: '',
-    service: '',
-    message: '',
-  });
-
-  const [touched, setTouched] = useState<Record<keyof FormFields, boolean>>({
-    firstName: false,
-    lastName: false,
-    email: false,
-    phone: false,
-    company: false,
-    service: false,
-    message: false,
-  });
-
+  const [fields, setFields] = useState<FormFields>(EMPTY);
+  const [touched, setTouched] = useState<Touched>(UNTOUCHED);
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const invalid: Touched = {
+    firstName: !fields.firstName.trim(),
+    lastName: !fields.lastName.trim(),
+    email: !EMAIL_RE.test(fields.email),
+    phone: false,
+    company: false,
+    service: !fields.service,
+    message: !fields.message.trim(),
+  };
+  const showError = (name: keyof FormFields) => touched[name] && invalid[name];
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFields((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleBlur = (e: FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
-  const validate = () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return (
-      fields.firstName.trim().length > 0 &&
-      fields.lastName.trim().length > 0 &&
-      emailRegex.test(fields.email) &&
-      fields.service.trim().length > 0 &&
-      fields.message.trim().length > 0
-    );
+  const reset = () => {
+    setStatus('success');
+    setFields(EMPTY);
+    setTouched(UNTOUCHED);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    setTouched({
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      company: true,
-      service: true,
-      message: true,
-    });
+    setTouched(ALL_TOUCHED);
 
-    if (!validate()) {
+    if (Object.values(invalid).some(Boolean)) {
       setStatus('error');
       return;
     }
@@ -81,28 +80,8 @@ export const ContactForm: React.FC = () => {
 
     if (!formUrl) {
       // Fallback: If no Google Apps Script Web App URL is configured, simulate success.
-      console.warn("Contact form URL (VITE_CONTACT_FORM_URL) not set. Simulating form submission.");
-      setTimeout(() => {
-        setStatus('success');
-        setFields({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          company: '',
-          service: '',
-          message: '',
-        });
-        setTouched({
-          firstName: false,
-          lastName: false,
-          email: false,
-          phone: false,
-          company: false,
-          service: false,
-          message: false,
-        });
-      }, 1500);
+      console.warn('Contact form URL (VITE_CONTACT_FORM_URL) not set. Simulating form submission.');
+      setTimeout(reset, 1500);
       return;
     }
 
@@ -111,7 +90,7 @@ export const ContactForm: React.FC = () => {
       // Google redirects the POST request to script.googleusercontent.com,
       // which causes CORS blocks on standard mode: 'cors' requests in the browser,
       // even if the script returns CORS headers. no-cors allows the submission to succeed.
-      const token = import.meta.env.VITE_CONTACT_FORM_TOKEN || "";
+      const token = import.meta.env.VITE_CONTACT_FORM_TOKEN || '';
       await fetch(formUrl, {
         method: 'POST',
         mode: 'no-cors',
@@ -120,174 +99,68 @@ export const ContactForm: React.FC = () => {
         },
         body: JSON.stringify({
           ...fields,
-          token: token
+          token: token,
         }),
       });
-
-      setStatus('success');
-      setFields({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        company: '',
-        service: '',
-        message: '',
-      });
-      setTouched({
-        firstName: false,
-        lastName: false,
-        email: false,
-        phone: false,
-        company: false,
-        service: false,
-        message: false,
-      });
+      reset();
     } catch (err) {
-      console.error("Error submitting contact form", err);
+      console.error('Error submitting contact form', err);
       setStatus('error');
     }
   };
 
+  const common = (name: keyof FormFields) => ({
+    id: name,
+    name,
+    value: fields[name],
+    onChange: handleChange,
+    onBlur: handleBlur,
+    'aria-invalid': showError(name) || undefined,
+    className: 'field mt-1',
+  });
+
   return (
-    <div className="bg-white border border-slate-200 p-6 sm:p-10 rounded-2xl shadow-xl text-left relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl pointer-events-none" />
-      
-      <div className="mb-8">
-        <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-          {t('cnt.form_title')}
-        </h3>
-        <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-relaxed font-light">
-          {t('cnt.form_sub')}
-        </p>
+    <div className="relative border border-sand bg-paper-light p-6 shadow-[0_24px_60px_-36px_rgb(35_62_101_/_0.4)] sm:p-10 lg:p-12">
+      <h2 className="display text-[clamp(2rem,3.4vw,2.8rem)] text-navy">{t('cnt.form_title')}</h2>
+      <p className="mt-3 text-ink-soft">{t('cnt.form_sub')}</p>
+
+      <div aria-live="polite">
+        {status === 'success' && (
+          <p className="page-enter mt-8 flex items-start gap-3 border-l-2 border-gold bg-sand-light/70 px-4 py-3 text-[0.95rem] text-navy">
+            <StarGlyph className="mt-1 h-3.5 w-3.5 shrink-0 text-gold" />
+            {t('cnt.success')}
+          </p>
+        )}
+        {status === 'error' && (
+          <p className="page-enter mt-8 border-l-2 border-oxblood bg-oxblood/5 px-4 py-3 text-[0.95rem] text-oxblood">
+            {t('cnt.error')}
+          </p>
+        )}
       </div>
 
-      {status === 'success' && (
-        <div className="bg-teal-50 border border-teal-200 text-teal-700 p-4 rounded-lg flex items-start gap-3 mb-6 animate-fadeIn">
-          <CheckCircle2 className="w-5 h-5 text-teal-605 text-teal-600 flex-shrink-0 mt-0.5" />
-          <span className="text-xs sm:text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: t('cnt.success') }} />
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="bg-orange-50 border border-orange-200 text-orange-700 p-4 rounded-lg flex items-start gap-3 mb-6 animate-fadeIn">
-          <AlertTriangle className="w-5 h-5 text-orange-605 text-orange-600 flex-shrink-0 mt-0.5" />
-          <span className="text-xs sm:text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: t('cnt.error') }} />
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-        <div className="grid sm:grid-cols-2 gap-5">
-          {/* First Name */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="firstName" className="text-slate-705 text-slate-700 font-bold text-xs">
-              {t('cnt.fname_lbl').replace(' *', '')} <span className="text-sky-600">*</span>
-            </label>
-            <input
-              type="text"
-              id="firstName"
-              name="firstName"
-              value={fields.firstName}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder={t('cnt.fname_ph')}
-              className={`bg-white border text-slate-800 text-sm px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-600 transition-colors ${
-                touched.firstName && !fields.firstName.trim() ? 'border-orange-300 bg-orange-50/50' : 'border-slate-300'
-              }`}
-              required
-            />
-          </div>
-
-          {/* Last Name */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="lastName" className="text-slate-705 text-slate-700 font-bold text-xs">
-              {t('cnt.lname_lbl').replace(' *', '')} <span className="text-sky-600">*</span>
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              name="lastName"
-              value={fields.lastName}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder={t('cnt.lname_ph')}
-              className={`bg-white border text-slate-800 text-sm px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-600 transition-colors ${
-                touched.lastName && !fields.lastName.trim() ? 'border-orange-300 bg-orange-50/50' : 'border-slate-300'
-              }`}
-              required
-            />
-          </div>
-
-          {/* Email */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-slate-705 text-slate-700 font-bold text-xs">
-              {t('cnt.email_lbl').replace(' *', '')} <span className="text-sky-600">*</span>
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={fields.email}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="name@company.com"
-              className={`bg-white border text-slate-800 text-sm px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-600 transition-colors ${
-                touched.email && (!fields.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) ? 'border-orange-300 bg-orange-50/50' : 'border-slate-300'
-              }`}
-              required
-            />
-          </div>
-
-          {/* Phone */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="phone" className="text-slate-705 text-slate-700 font-bold text-xs">
-              {t('cnt.phone_lbl')}
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={fields.phone}
-              onChange={handleChange}
-              placeholder="+90 555 000 00 00"
-              className="bg-white border border-slate-300 text-slate-800 text-sm px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-600 transition-colors"
-            />
-          </div>
-
-          {/* Company */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="company" className="text-slate-705 text-slate-700 font-bold text-xs">
-              {t('cnt.company_lbl')}
-            </label>
-            <input
-              type="text"
-              id="company"
-              name="company"
-              value={fields.company}
-              onChange={handleChange}
-              placeholder={t('cnt.company_ph')}
-              className="bg-white border border-slate-300 text-slate-800 text-sm px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-600 transition-colors"
-            />
-          </div>
-
-          {/* Service Area */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="service" className="text-slate-705 text-slate-700 font-bold text-xs">
-              {t('cnt.service_lbl').replace(' *', '')} <span className="text-sky-600">*</span>
-            </label>
+      <form onSubmit={handleSubmit} className="mt-10 space-y-8" noValidate>
+        <div className="grid gap-8 sm:grid-cols-2">
+          <Field id="firstName" label={t('cnt.fname_lbl')} required>
+            <input type="text" autoComplete="given-name" placeholder={t('cnt.fname_ph')} required {...common('firstName')} />
+          </Field>
+          <Field id="lastName" label={t('cnt.lname_lbl')} required>
+            <input type="text" autoComplete="family-name" placeholder={t('cnt.lname_ph')} required {...common('lastName')} />
+          </Field>
+          <Field id="email" label={t('cnt.email_lbl')} required>
+            <input type="email" autoComplete="email" placeholder="name@company.com" required {...common('email')} />
+          </Field>
+          <Field id="phone" label={t('cnt.phone_lbl')}>
+            <input type="tel" autoComplete="tel" placeholder="+90 555 000 00 00" {...common('phone')} />
+          </Field>
+          <Field id="company" label={t('cnt.company_lbl')}>
+            <input type="text" autoComplete="organization" placeholder={t('cnt.company_ph')} {...common('company')} />
+          </Field>
+          <Field id="service" label={t('cnt.service_lbl')} required>
             <div className="relative">
-              <select
-                id="service"
-                name="service"
-                value={fields.service}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={`w-full bg-white border text-slate-700 text-sm px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-600 transition-colors appearance-none ${
-                  touched.service && !fields.service ? 'border-orange-300 bg-orange-50/50' : 'border-slate-300'
-                }`}
-                required
-              >
-                <option value="" disabled>{t('cnt.service_def')}</option>
+              <select required {...common('service')} className={`field mt-1 pr-8 ${fields.service ? '' : 'text-ink-soft/70'}`}>
+                <option value="" disabled>
+                  {t('cnt.service_def')}
+                </option>
                 <optgroup label={t('cnt.og_eng')}>
                   <option value="technical-drawing">{t('cnt.opt_draw')}</option>
                   <option value="structural-design">{t('cnt.opt_struct')}</option>
@@ -305,55 +178,28 @@ export const ContactForm: React.FC = () => {
                 </optgroup>
                 <option value="other">{t('cnt.opt_other')}</option>
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                </svg>
-              </div>
+              <svg aria-hidden viewBox="0 0 12 8" className="pointer-events-none absolute right-1 top-1/2 h-2 w-3 text-navy">
+                <path d="M1 1.5 L6 6.5 L11 1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+              </svg>
             </div>
-          </div>
+          </Field>
         </div>
 
-        {/* Message */}
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="message" className="text-slate-705 text-slate-700 font-bold text-xs">
-            {t('cnt.msg_lbl').replace(' *', '')} <span className="text-sky-600">*</span>
-          </label>
-          <textarea
-            id="message"
-            name="message"
-            value={fields.message}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            rows={5}
-            placeholder={t('cnt.msg_ph')}
-            className={`bg-white border text-slate-800 text-sm px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-600 transition-colors ${
-              touched.message && !fields.message.trim() ? 'border-orange-300 bg-orange-50/50' : 'border-slate-300'
-            }`}
-            required
-          />
+        <Field id="message" label={t('cnt.msg_lbl')} required>
+          <textarea rows={5} placeholder={t('cnt.msg_ph')} required {...common('message')} className="field mt-1 resize-y" />
+        </Field>
+
+        <div className="flex flex-col-reverse gap-6 pt-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-sm text-[0.8rem] leading-relaxed text-ink-soft">{t('cnt.req_note')}</p>
+          <button
+            type="submit"
+            disabled={status === 'sending'}
+            className="group inline-flex shrink-0 items-center justify-center gap-2.5 rounded-full bg-oxblood py-4 pl-7 pr-6 font-medium text-paper transition-colors duration-300 hover:bg-oxblood-deep disabled:cursor-wait disabled:opacity-60"
+          >
+            {status === 'sending' ? t('cnt.btn_sending') : t('cnt.btn_submit')}
+            <ArrowUpRight aria-hidden className="h-4 w-4 transition-transform duration-500 group-hover:rotate-45" />
+          </button>
         </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={status === 'sending'}
-          className="w-full bg-sky-655 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-100 disabled:text-slate-400 text-white font-extrabold text-sm py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-md shadow-sky-600/10"
-        >
-          {status === 'sending' ? (
-            <span>{t('cnt.btn_sending')}</span>
-          ) : (
-            <>
-              <Send className="w-4 h-4" />
-              <span>{t('cnt.btn_submit')}</span>
-            </>
-          )}
-        </button>
-
-        {/* KVKK / Privacy Disclaimer */}
-        <p className="text-slate-400 text-[10px] sm:text-xs text-center leading-relaxed max-w-md mx-auto">
-          Fields marked with <span className="text-sky-600 font-extrabold">*</span> are required. Your information is protected under KVKK regulations.
-        </p>
       </form>
     </div>
   );
