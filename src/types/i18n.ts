@@ -173,8 +173,12 @@ export interface TranslationDict {
   'team.sub': string;
   'team.ilmaz_ttl': string;
   'team.ilmaz_bio': string;
+  'team.metin_ttl': string;
+  'team.metin_bio': string;
   'team.aysuhan_ttl': string;
   'team.aysuhan_bio': string;
+  'tag.drafting_2d': string;
+  'tag.modeling_3d': string;
 
   // Team tags
   'tag.mech_eng': string;
@@ -461,14 +465,18 @@ export const translations: Record<Language, TranslationDict> = {
 
     'team.label': 'Ortaklar',
     'team.title': 'Kurucularımız',
-    'team.sub': 'Birikim ve yeniliğin buluştuğu iki kişilik dinamik yönetim kadromuz.',
+    'team.sub': 'Hesap, çizim ve kod: birikim ile yeniliğin buluştuğu küçük bir aile ekibi.',
     'team.ilmaz_ttl': 'Kurucu & Genel Müdür',
     'team.ilmaz_bio': '30 yılı aşkın süredir mekanik tesisat, bina sistemleri, sıhhi tesisat ve yapısal proje danışmanlığı yürüten İlmız Ünlü, şirketimizin mühendislik vizyonunun ve yerel güvenilirliğinin temel direğidir. Adana ve bölgesindeki kamu/özel projelerin teknik onay ve denetim süreçlerini yönetmektedir.',
-    'team.aysuhan_ttl': 'Teknoloji Lideri',
-    'team.aysuhan_bio': 'Makine mühendisliği eğitimini veri bilimi ve yapay zeka mühendisliği ile birleştiren Metin Ünlü, şirketin teknolojik dönüşümüne liderlik etmektedir. İtalyan yapay zeka ortağımız Techneos ile yürütülen büyük ölçekli sınır ötesi veri hatları ve LLM projelerini yönetmektedir.',
+    'team.metin_ttl': 'Teknoloji Lideri',
+    'team.aysuhan_ttl': 'Teknik Çizim & Tasarım',
+    'team.aysuhan_bio': 'Ofisin çizim masasının sahibi. Projelerin 2B teknik çizimlerinin büyük çoğunluğunu AutoCAD\'de hazırlayan Aysuhan Ünlü, İlmiz Ünlü\'nün mühendislik hesaplarını net ve uygulanabilir çizimlere dönüştürür. 3B modelleme ile projelerin görselleştirilmesine de destek verir.',
+    'team.metin_bio': 'Makine mühendisliği eğitimini veri bilimi ve yapay zeka mühendisliği ile birleştiren Metin Ünlü, şirketin teknolojik dönüşümüne liderlik etmektedir. İtalyan yapay zeka ortağımız Techneos ile yürütülen büyük ölçekli sınır ötesi veri hatları ve LLM projelerini yönetmektedir.',
 
     'tag.mech_eng': 'Mekanik Mühendisliği',
     'tag.tech_draw': 'Teknik Çizim (CAD)',
+    'tag.drafting_2d': '2B Proje Çizimi',
+    'tag.modeling_3d': '3B Modelleme',
     'tag.structural': 'Yapısal Tasarım',
     'tag.constr_mgmt': 'Şantiye Yönetimi',
     'tag.proj_cons': 'Müşavirlik',
@@ -740,14 +748,18 @@ export const translations: Record<Language, TranslationDict> = {
 
     'team.label': 'The Partners',
     'team.title': 'Meet the Team',
-    'team.sub': 'Two people. Two complementary skill sets. A shared commitment to delivering quality work on every project.',
+    'team.sub': 'Calculations, drawings and code. A small family team with complementary skills and a shared commitment to quality on every project.',
     'team.ilmaz_ttl': 'Founder & Managing Director',
     'team.ilmaz_bio': 'With over 30 years of hands-on experience in mechanical and MEP design, Ilmiz is the backbone of Atlas Proje\'s engineering credibility. He leads client relationships and supervises technical drawings, building regulations compliance, and site project management across Adana.',
-    'team.aysuhan_ttl': 'Technology Lead',
-    'team.aysuhan_bio': 'Bridging his mechanical engineering background with modern data science and artificial intelligence. Metin directs the technology division at Atlas Proje, managing international AI pipelines and LLM workflows in direct collaboration with Techneos (Italy).',
+    'team.metin_ttl': 'Technology Lead',
+    'team.aysuhan_ttl': 'Technical Drawing & Design',
+    'team.aysuhan_bio': 'The hand behind the drawing board. Aysuhan prepares the majority of our 2D technical drawings in AutoCAD, turning İlmiz\'s engineering calculations into clear, buildable plans. She also supports projects with 3D modelling.',
+    'team.metin_bio': 'Bridging his mechanical engineering background with modern data science and artificial intelligence. Metin directs the technology division at Atlas Proje, managing international AI pipelines and LLM workflows in direct collaboration with Techneos (Italy).',
 
     'tag.mech_eng': 'Mechanical Engineering',
     'tag.tech_draw': 'Technical Drawing',
+    'tag.drafting_2d': '2D Drafting',
+    'tag.modeling_3d': '3D Modelling',
     'tag.structural': 'Structural Design',
     'tag.constr_mgmt': 'Construction Management',
     'tag.proj_cons': 'Project Consultancy',

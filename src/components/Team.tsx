@@ -3,7 +3,7 @@ import { Eyebrow, Reveal } from './ui';
 
 /** Monogram set inside the pointed arch from the Atlas mark. */
 const ArchPortrait = ({ initials }: { initials: string }) => (
-  <svg viewBox="0 0 120 160" className="w-28 sm:w-full" aria-hidden>
+  <svg viewBox="0 0 120 160" className="w-28 sm:w-full lg:w-32" aria-hidden>
     <path d="M0 160 V70 C0 36 26 16 60 0 C94 16 120 36 120 70 V160 Z" className="fill-navy" />
     <path
       d="M10 160 V73 C10 44 32 26 60 12 C88 26 110 44 110 73 V160"
@@ -31,12 +31,20 @@ export const Team = () => {
       offset: '',
     },
     {
-      initials: 'MÜ',
-      name: 'Metin Ünlü',
+      initials: 'AÜ',
+      name: 'Aysuhan Ünlü',
       title: t('team.aysuhan_ttl'),
       bio: t('team.aysuhan_bio'),
+      tags: ['AutoCAD', t('tag.drafting_2d'), t('tag.tech_draw'), t('tag.modeling_3d')],
+      offset: 'lg:mt-24',
+    },
+    {
+      initials: 'MÜ',
+      name: 'Metin Ünlü',
+      title: t('team.metin_ttl'),
+      bio: t('team.metin_bio'),
       tags: [t('tag.sw_dev'), t('tag.data_sci'), t('tag.ml'), t('tag.api'), t('tag.db'), t('tag.intl'), t('tag.ai_eng'), t('tag.llm')],
-      offset: 'lg:mt-32',
+      offset: 'lg:mt-12',
     },
   ];
 
@@ -50,13 +58,13 @@ export const Team = () => {
         <p className="lede lg:col-span-4 lg:col-start-8">{t('team.sub')}</p>
       </Reveal>
 
-      <div className="mt-16 grid gap-20 lg:grid-cols-2 lg:gap-16">
+      <div className="mt-16 grid gap-20 lg:grid-cols-3 lg:gap-12">
         {members.map((m, idx) => (
           <Reveal key={m.name} delay={idx * 150} className={m.offset}>
-            <article className="grid gap-8 sm:grid-cols-[8.5rem_1fr]">
+            <article className="grid gap-8 sm:grid-cols-[8.5rem_1fr] lg:grid-cols-1">
               <ArchPortrait initials={m.initials} />
               <div>
-                <h3 className="display text-[2.3rem] leading-none text-navy">{m.name}</h3>
+                <h3 className="display text-[2.2rem] leading-none text-navy">{m.name}</h3>
                 <p className="mt-2 font-display text-lg italic text-oxblood">{m.title}</p>
                 <p className="mt-5 leading-relaxed text-ink-soft">{m.bio}</p>
                 <p className="eyebrow mt-7 text-gold">{t('team.focus')}</p>
